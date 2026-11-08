@@ -154,10 +154,10 @@
     <div id="login-screen">
         <h2>BLUEBIRD MDT - LOGOWANIE</h2>
         <label>Numer służbowy:</label>
-        <input type="number" id="login_nr" placeholder="np. 1304720">
+        <input type="text" id="login_nr" placeholder="np. 1304720">
         <label>PIN:</label>
         <input type="password" id="login_pin" placeholder="******">
-        <button onclick="zaloguj()">ZALOGUJ DO TERMINALA</button>
+        <button type="button" onclick="zaloguj()">ZALOGUJ DO TERMINALA</button>
         <p id="login_blad" style="color: #ff6b6b; text-align: center; font-weight: bold; display: none; margin-top: 15px;">Błędny numer lub PIN!</p>
     </div>
 
@@ -186,7 +186,7 @@
 
     <div class="bottom-bar">
         <button class="btn-small" onclick="otworzOkno('postac')">OPCJE / POSTAĆ</button>
-        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.3 - System RP')">i</button>
+        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.4 - System RP')">i</button>
     </div>
 
     <!-- PANEL: LEGITYMOWANIE OSÓB -->
@@ -305,8 +305,8 @@
         // BAZA UŻYTKOWNIKÓW (TUTAJ DODAJESZ POLICJANTÓW)
         // ==========================================
         const UZYTKOWNICY = {
-            "123456": { pin: "0000", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
-            "123456":  { pin: "0000", nazwa: "Post. Nowak",     jednostka: "PATROL-02" }
+            "1304720": { pin: "123456", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
+            "998877":  { pin: "000000", nazwa: "Post. Nowak",     jednostka: "PATROL-02" }
         };
 
         // ==========================================
@@ -354,100 +354,4 @@
 
             if (UZYTKOWNICY[nr] && UZYTKOWNICY[nr].pin === pin) {
                 const user = UZYTKOWNICY[nr];
-                aktualnyOficer = `${user.nazwa} [${nr}] (${user.jednostka})`;
-                document.getElementById('login-screen').style.display = 'none';
-                
-                document.querySelector('.top-bar-2').innerText = `OFICER: ${user.nazwa} (${nr}) | ${user.jednostka}`;
-                document.getElementById('l_policjant').value = aktualnyOficer;
-                document.getElementById('m_policjant').value = aktualnyOficer;
-                document.getElementById('v_policjant').value = aktualnyOficer;
-            } else {
-                blad.style.display = 'block';
-            }
-        }
-
-        let statusIndex = 0;
-        const statusy = [
-            { text: "STATUS PATROLU: WOLNY (10-8)", cls: "", nazwaStatusu: "🟢 WOLNY (10-8)" },
-            { text: "STATUS PATROLU: INTERWENCJA (10-6)", cls: "busy", nazwaStatusu: "🟡 INTERWENCJA (10-6)" },
-            { text: "STATUS PATROLU: PRZERWA / POSIŁEK (10-10)", cls: "break", nazwaStatusu: "🔴 PRZERWA (10-10)" }
-        ];
-
-        function zmienStatus() {
-            statusIndex = (statusIndex + 1) % statusy.length;
-            const btn = document.getElementById('statusBtn');
-            const s = statusy[statusIndex];
-            btn.innerText = s.text;
-            btn.className = "status-btn " + s.cls;
-
-            if (aktualnyOficer) {
-                let msg = `🔄 **ZMIANA STATUSU PATROLU**\n• **Funkcjonariusz:** ${aktualnyOficer}\n• **Nowy Status:** **${s.nazwaStatusu}**`;
-                wyslijDoDiscordaTych(WEBHOOK_STATUSY, msg, false);
-            }
-        }
-
-        function wyslijPanike() {
-            if (!aktualnyOficer) return;
-            if (confirm("Czy na pewno wysłać PILNE WEZWANIE WSPARCIA (10-99)?")) {
-                let msg = `🚨🚨 **ALARM 10-99! PILNE WSPARCIE!** 🚨🚨\n• **Jednostka wzywająca:** ${aktualnyOficer}\n• **Wszystkie wolne patrole proszone o natychmiastową reakcję!**`;
-                wyslijDoDiscordaTych(WEBHOOK_PANIKA, msg, false);
-                alert("Wysłano alarm 10-99 na Discord!");
-            }
-        }
-
-        function wybierzZtaryfikatora() {
-            let select = document.getElementById('m_taryfikator');
-            let val = select.value;
-            if(!val) return;
-            let parts = val.split('|');
-            document.getElementById('m_powod').value = parts[0];
-            document.getElementById('m_kwota').value = parts[1];
-        }
-
-        function otworzOkno(nazwa) {
-            zamknijOkna();
-            if (nazwa === 'historia') {
-                pokazHistorie();
-            }
-            document.getElementById('modal-' + nazwa).classList.add('active');
-        }
-
-        function zamknijOkna() {
-            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
-        }
-
-        function wyslijDoDiscorda(webhookUrl, tekst) {
-            wyslijDoDiscordaTych(webhookUrl, tekst, true);
-        }
-
-        function wyslijDoDiscordaTych(webhookUrl, tekst, zamknijPoWyslaniu) {
-            if (webhookUrl.includes("TUTAJ_LINK")) {
-                alert('BŁĄD: Uzupełnij linki Webhook Discord w kodzie!');
-                return;
-            }
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: tekst })
-            }).then(() => {
-                if(zamknijPoWyslaniu) {
-                    alert('Wysłano pomyślnie na Discord!');
-                    zamknijOkna();
-                }
-            }).catch(err => {
-                console.error(err);
-            });
-        }
-
-        function przyjmijZgloszenie() {
-            let lok = document.getElementById('d_lokalizacja').value;
-            let opis = document.getElementById('d_opis').value;
-            if(!lok) { alert('Wpisz lokalizację!'); return; }
-
-            zapiszHistorie('DISPATCH', `Miejsce: <b>${lok}</b> | ${opis}`);
-            let msg = `📞 **PATROL PRZYJĄŁ ZGŁOSZENIE**\n• **Funkcjonariusz:** ${aktualnyOficer}\n• **Lokalizacja:** ${lok}\n• **Opis:** ${opis}`;
-            wyslijDoDiscorda(WEBHOOK_DISPATCH, msg);
-        }
-
-        // HISTORIA
-        function zapiszHis
+                aktualnyOficer = `${user.nazwa} [${nr}] (${user.jednostka})`;  // Ukrycie ekranu logowania za pomocą stylów inline, aby wymusić działanie const loginScreen = document.getElementById('login-screen'); loginScreen.style.display = 'none';  document.querySelector('.top-bar-2').innerText = `OFICER: ${user.nazwa
