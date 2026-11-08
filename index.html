@@ -22,13 +22,14 @@
         /* Górne paski Bluebird */
         .top-bar-1 { background-color: #4c8c2b; color: white; text-align: center; font-size: 12px; padding: 4px; font-weight: bold; }
         .top-bar-2 { background-color: #6ab03b; color: #1b3b09; font-size: 11px; padding: 4px 8px; margin-top: 2px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
         .status-btn {
             background-color: #76c043;
             color: #000;
             font-weight: bold;
             font-size: 14px;
-            padding: 18px 12px;
-            margin: 8px 6px;
+            padding: 16px 12px;
+            margin: 8px 6px 4px 6px;
             border: none;
             width: calc(100% - 12px);
             text-align: left;
@@ -37,6 +38,23 @@
         }
         .status-btn.busy { background-color: #e6a800; }
         .status-btn.break { background-color: #d9534f; color: white; }
+
+        /* Przycisk Paniki */
+        .panic-btn {
+            background-color: #c9302c;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 12px;
+            margin: 4px 6px 8px 6px;
+            border: 2px solid #961f1c;
+            width: calc(100% - 12px);
+            text-align: center;
+            cursor: pointer;
+            text-transform: uppercase;
+            border-radius: 3px;
+        }
+        .panic-btn:active { background-color: #a0221e; }
 
         /* Siatka kafelków */
         .grid {
@@ -61,11 +79,10 @@
         }
         .tile:active { opacity: 0.85; }
         .tile-tall { height: 135px; }
-        .tile-med { height: 75px; }
+        .tile-med { height: 85px; }
 
         .bg-light-blue { background-color: #6ea1d4; }
         .bg-blue { background-color: #3a6bc4; }
-        .bg-gray { background-color: #dcdcdc; color: #555; }
 
         /* Dolny pasek */
         .bottom-bar {
@@ -124,6 +141,18 @@
             background: #4c8c2b; color: white; border: none;
             font-weight: bold; font-size: 15px; cursor: pointer;
         }
+
+        /* Historia */
+        .history-item {
+            background: white;
+            border-left: 4px solid #3a6bc4;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .history-time { font-size: 11px; color: #777; margin-bottom: 4px; }
+        .clear-btn { background: #d9534f; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -144,26 +173,24 @@
     <div class="top-bar-2">ZALOGUJ SIĘ DO SYSTEMU</div>
     
     <button id="statusBtn" class="status-btn" onclick="zmienStatus()">
-        STATUS PATROLU WOLNY / ZMIEŃ STATUS
+        STATUS PATROLU: WOLNY (10-8)
+    </button>
+
+    <button class="panic-btn" onclick="wyslijPanike()">
+        🚨 PANIKA / PILNE WSPARCIE (10-99)
     </button>
 
     <div class="grid">
         <button class="tile tile-tall bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIA</button>
-        <button class="tile tile-tall bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>WŁASNA</button>
+        <button class="tile tile-tall bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>WŁASNA (MANDAT)</button>
 
-        <button class="tile tile-med bg-blue" onclick="alert('Brak nowych komunikatów z centrali.')">KOMUNIKATY<br>NOWE: 5</button>
-        <button class="tile tile-med bg-blue" onclick="otworzOkno('postac')">ZDARZENIA<br>(POSTACIE)</button>
-
-        <button class="tile tile-med bg-gray" onclick="alert('Dostępne tylko podczas aktywnej interwencji.')">(TYLKO W<br>INTERWENCJI)<br>MELDUNKI</button>
-        <button class="tile tile-med bg-gray" onclick="alert('Brak nowych dyspozycji.')">DYSPOZYCJE<br>NOWE: 3</button>
-
-        <div></div>
-        <button class="tile tile-med bg-blue" onclick="alert('Moduł mapy GPS w przygotowaniu.')">MAPA</button>
+        <button class="tile tile-med bg-blue" onclick="otworzOkno('postac')">TWORZENIE<br>POSTACI</button>
+        <button class="tile tile-med bg-blue" onclick="otworzOkno('historia')">HISTORIA<br>INTERWENCJI</button>
     </div>
 
     <div class="bottom-bar">
         <button class="btn-small" onclick="otworzOkno('postac')">OPCJE / POSTAĆ</button>
-        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v1.0 - System RP')">i</button>
+        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.1 - System RP')">i</button>
     </div>
 
     <!-- PANEL: LEGITYMOWANIE -->
@@ -187,7 +214,7 @@
         <button class="submit-btn" onclick="wyslijLegitymowanie()">WYŚLIJ RAPORT NA DISCORD</button>
     </div>
 
-    <!-- PANEL: INTERWENCJA / MANDAT -->
+    <!-- PANEL: INTERWENCJA / MANDAT Z TARYFIKATOREM -->
     <div id="modal-mandat" class="modal">
         <div class="modal-header">
             <span>INTERWENCJA WŁASNA - MANDAT</span>
@@ -197,10 +224,24 @@
         <input type="text" id="m_policjant" readonly style="background: #e6e6e6;">
         <label>Obywatel:</label>
         <input type="text" id="m_obywatel" placeholder="Imię i Nazwisko">
+        
+        <label>Wybierz z Taryfikatora:</label>
+        <select id="m_taryfikator" onchange="wybierzZtaryfikatora()">
+            <option value="">-- Wybierz wykroczenie z listy --</option>
+            <option value="Przekroczenie prędkości|300">Przekroczenie prędkości - 300 PLN</option>
+            <option value="Brak włączonych świateł|150">Brak włączonych świateł - 150 PLN</option>
+            <option value="Nieustąpienie pierwszeństwa|500">Nieustąpienie pierwszeństwa - 500 PLN</option>
+            <option value="Parkowanie w niedozwolonym miejscu|200">Złe parkowanie - 200 PLN</option>
+            <option value="Ucieczka przed Policją|2500">Ucieczka przed Policją - 2500 PLN</option>
+            <option value="Napaść / Stawianie oporu|1500">Stawianie oporu - 1500 PLN</option>
+        </select>
+
         <label>Powód / Wykroczenie:</label>
-        <input type="text" id="m_powod" placeholder="np. Przekroczenie prędkości">
+        <input type="text" id="m_powod" placeholder="Wpisz lub wybierz z listy wyżej">
+        
         <label>Kwota mandatu (PLN):</label>
         <input type="number" id="m_kwota" placeholder="500">
+        
         <button class="submit-btn" onclick="wyslijMandat()">WYSTAW MANDAT NA DISCORD</button>
     </div>
 
@@ -219,22 +260,35 @@
         <button class="submit-btn" onclick="wyslijPostac()">ZAPISZ POSTAĆ NA DISCORD</button>
     </div>
 
+    <!-- PANEL: HISTORIA INTERWENCJI -->
+    <div id="modal-historia" class="modal">
+        <div class="modal-header">
+            <span>OSTATNIE INTERWENCJE</span>
+            <button class="close-btn" onclick="zamknijOkna()">X</button>
+        </div>
+        <div id="lista-historii"></div>
+        <button class="clear-btn" onclick="wyczyscHistorie()">WYCZYŚĆ HISTORIĘ</button>
+    </div>
+
     <script>
         // ==========================================
         // BAZA UŻYTKOWNIKÓW (TUTAJ DODAJESZ POLICJANTÓW)
         // ==========================================
         const UZYTKOWNICY = {
             "1304720": { pin: "123456", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
-            "998877":  { pin: "000000", nazwa: "Post. Nowak",     jednostka: "PATROL-02" },
-            "1234567": { pin: "9999", nazwa: "Oficer Zieliński", jednostka: "PATROL-03" }
+            "998877":  { pin: "000000", nazwa: "Post. Nowak",     jednostka: "PATROL-02" }
         };
 
         // ==========================================
-        // LINKI DO WEBHOOKÓW DISCORD (W CUDZYŁOWACH)
+        // LINKI DO WEBHOOKÓW DISCORD (W CUDZYSŁOWACH)
         // ==========================================
         const WEBHOOK_POSTACIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_LEGITYMOWANIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_MANDATY = "https://discord.com/api/webhooks/1486258468955488306/b2qIf2Ilqt3VHuszdvtOIRHmOQK6le_4TS98vnz_xOCiIKBzbHLNtlJvYyzKvB4tK7cc";
+        const WEBHOOK_STATUSY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
+        const WEBHOOK_PANIKA = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH"; // Może być ten sam co STATUSY
+
+        let aktualnyOficer = "";
 
         function zaloguj() {
             const nr = document.getElementById('login_nr').value.trim();
@@ -243,12 +297,12 @@
 
             if (UZYTKOWNICY[nr] && UZYTKOWNICY[nr].pin === pin) {
                 const user = UZYTKOWNICY[nr];
+                aktualnyOficer = `${user.nazwa} [${nr}] (${user.jednostka})`;
                 document.getElementById('login-screen').style.display = 'none';
                 
-                // Ustawia dane w interfejsie
                 document.querySelector('.top-bar-2').innerText = `OFICER: ${user.nazwa} (${nr}) | ${user.jednostka}`;
-                document.getElementById('l_policjant').value = `${user.nazwa} [${nr}]`;
-                document.getElementById('m_policjant').value = `${user.nazwa} [${nr}]`;
+                document.getElementById('l_policjant').value = aktualnyOficer;
+                document.getElementById('m_policjant').value = aktualnyOficer;
             } else {
                 blad.style.display = 'block';
             }
@@ -256,20 +310,47 @@
 
         let statusIndex = 0;
         const statusy = [
-            { text: "STATUS PATROLU WOLNY / ZMIEŃ STATUS", cls: "" },
-            { text: "STATUS PATROLU INTERWENCJA / ZMIEŃ STATUS", cls: "busy" },
-            { text: "STATUS PATROLU PRZERWA / ZMIEŃ STATUS", cls: "break" }
+            { text: "STATUS PATROLU: WOLNY (10-8)", cls: "", nazwaStatusu: "🟢 WOLNY (10-8)" },
+            { text: "STATUS PATROLU: INTERWENCJA (10-6)", cls: "busy", nazwaStatusu: "🟡 INTERWENCJA (10-6)" },
+            { text: "STATUS PATROLU: PRZERWA / POSIŁEK (10-10)", cls: "break", nazwaStatusu: "🔴 PRZERWA (10-10)" }
         ];
 
         function zmienStatus() {
             statusIndex = (statusIndex + 1) % statusy.length;
             const btn = document.getElementById('statusBtn');
-            btn.innerText = statusy[statusIndex].text;
-            btn.className = "status-btn " + statusy[statusIndex].cls;
+            const s = statusy[statusIndex];
+            btn.innerText = s.text;
+            btn.className = "status-btn " + s.cls;
+
+            if (aktualnyOficer) {
+                let msg = `🔄 **ZMIANA STATUSU PATROLU**\n• **Funkcjonariusz:** ${aktualnyOficer}\n• **Nowy Status:** **${s.nazwaStatusu}**`;
+                wyslijDoDiscordaTych(WEBHOOK_STATUSY, msg, false);
+            }
+        }
+
+        function wyslijPanike() {
+            if (!aktualnyOficer) return;
+            if (confirm("Czy na pewno wysłać PILNE WEZWANIE WSPARCIA (10-99)?")) {
+                let msg = `🚨🚨 **ALARM 10-99! PILNE WSPARCIE!** 🚨🚨\n• **Jednostka wzywająca:** ${aktualnyOficer}\n• **Wszystkie wolne patrole proszone o natychmiastową reakcję!**`;
+                wyslijDoDiscordaTych(WEBHOOK_PANIKA, msg, false);
+                alert("Wysłano alarm 10-99 na Discord!");
+            }
+        }
+
+        function wybierzZtaryfikatora() {
+            let select = document.getElementById('m_taryfikator');
+            let val = select.value;
+            if(!val) return;
+            let parts = val.split('|');
+            document.getElementById('m_powod').value = parts[0];
+            document.getElementById('m_kwota').value = parts[1];
         }
 
         function otworzOkno(nazwa) {
             zamknijOkna();
+            if (nazwa === 'historia') {
+                pokazHistorie();
+            }
             document.getElementById('modal-' + nazwa).classList.add('active');
         }
 
@@ -278,8 +359,12 @@
         }
 
         function wyslijDoDiscorda(webhookUrl, tekst) {
+            wyslijDoDiscordaTych(webhookUrl, tekst, true);
+        }
+
+        function wyslijDoDiscordaTych(webhookUrl, tekst, zamknijPoWyslaniu) {
             if (webhookUrl.includes("TUTAJ_LINK")) {
-                alert('BŁĄD: Wklej najpierw prawdziwy link do Webhooka Discorda w kodzie!');
+                alert('BŁĄD: Uzupełnij linki Webhook Discord w kodzie!');
                 return;
             }
             fetch(webhookUrl, {
@@ -287,12 +372,42 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: tekst })
             }).then(() => {
-                alert('Wysłano pomyślnie na Discord!');
-                zamknijOkna();
+                if(zamknijPoWyslaniu) {
+                    alert('Wysłano pomyślnie na Discord!');
+                    zamknijOkna();
+                }
             }).catch(err => {
-                alert('Błąd wysyłania!');
                 console.error(err);
             });
+        }
+
+        // OBSŁUGA HISTORII W PAMIĘCI TELEFONU
+        function zapiszHistorie(typ, opis) {
+            let historia = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
+            let teraz = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+            historia.unshift({ czas: teraz, typ: typ, opis: opis });
+            if (historia.length > 10) historia.pop(); // Trzyma maksymalnie 10 ostatnich
+            localStorage.setItem('bluebird_historia', JSON.stringify(historia));
+        }
+
+        function pokazHistorie() {
+            let kontener = document.getElementById('lista-historii');
+            let historia = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
+            if (historia.length === 0) {
+                kontener.innerHTML = '<p style="text-align:center; color:#666;">Brak zapisanych interwencji.</p>';
+                return;
+            }
+            kontener.innerHTML = historia.map(h => `
+                <div class="history-item">
+                    <div class="history-time">${h.czas} | <b>${h.typ}</b></div>
+                    <div>${h.opis}</div>
+                </div>
+            `).join('');
+        }
+
+        function wyczyscHistorie() {
+            localStorage.removeItem('bluebird_historia');
+            pokazHistorie();
         }
 
         function wyslijLegitymowanie() {
@@ -301,6 +416,8 @@
             let s = document.getElementById('l_status').value;
             let n = document.getElementById('l_notatki').value;
             if(!o) { alert('Wpisz obywatela!'); return; }
+            
+            zapiszHistorie('LEGITYMOWANIE', `Obywatel: <b>${o}</b> | Status: ${s}`);
             let msg = `🔍 **RAPORT Z LEGITYMOWANIA**\n• **Oficer:** ${p}\n• **Sprawdzany:** ${o}\n• **Status w bazie:** **${s}**\n• **Notatki:** ${n}`;
             wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, msg);
         }
@@ -311,6 +428,8 @@
             let pow = document.getElementById('m_powod').value;
             let k = document.getElementById('m_kwota').value;
             if(!o) { alert('Wpisz obywatela!'); return; }
+            
+            zapiszHistorie('MANDAT', `Obywatel: <b>${o}</b> | Kwota: ${k} PLN (${pow})`);
             let msg = `🚨 **WYSTAWIONO MANDAT**\n• **Funkcjonariusz:** ${p}\n• **Obywatel:** ${o}\n• **Powód:** ${pow}\n• **Kwota:** ${k} PLN`;
             wyslijDoDiscorda(WEBHOOK_MANDATY, msg);
         }
