@@ -39,7 +39,6 @@
         .status-btn.busy { background-color: #e6a800; }
         .status-btn.break { background-color: #d9534f; color: white; }
 
-        /* Przycisk Paniki */
         .panic-btn {
             background-color: #c9302c;
             color: white;
@@ -67,7 +66,7 @@
             border: none;
             color: white;
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             display: flex;
             align-items: center;
@@ -76,10 +75,9 @@
             cursor: pointer;
             padding: 10px;
             border-radius: 2px;
+            height: 85px;
         }
         .tile:active { opacity: 0.85; }
-        .tile-tall { height: 135px; }
-        .tile-med { height: 85px; }
 
         .bg-light-blue { background-color: #6ea1d4; }
         .bg-blue { background-color: #3a6bc4; }
@@ -109,7 +107,7 @@
             padding: 10px 14px;
         }
 
-        /* Okna (Panele po kliknięciu) */
+        /* Okna (Modale) */
         .modal {
             display: none;
             position: fixed;
@@ -144,12 +142,7 @@
 
         /* Historia */
         .history-item {
-            background: white;
-            border-left: 4px solid #3a6bc4;
-            padding: 10px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: white; border-left: 4px solid #3a6bc4; padding: 10px; margin-bottom: 10px; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .history-time { font-size: 11px; color: #777; margin-bottom: 4px; }
         .clear-btn { background: #d9534f; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
@@ -176,24 +169,27 @@
         STATUS PATROLU: WOLNY (10-8)
     </button>
 
-    <button class="panic-btn" onclick="wyslijPanike()">
+    <button class="panic-btn" onclick="zagrajDzwonekAlarmu(); wyslijPanike();">
         🚨 PANIKA / PILNE WSPARCIE (10-99)
     </button>
 
     <div class="grid">
-        <button class="tile tile-tall bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIA</button>
-        <button class="tile tile-tall bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>WŁASNA (MANDAT)</button>
+        <button class="tile bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIA<br>OSÓB</button>
+        <button class="tile bg-light-blue" onclick="otworzOkno('pojazdy')">KONTROLA<br>POJAZDÓW</button>
 
-        <button class="tile tile-med bg-blue" onclick="otworzOkno('postac')">TWORZENIE<br>POSTACI</button>
-        <button class="tile tile-med bg-blue" onclick="otworzOkno('historia')">HISTORIA<br>INTERWENCJI</button>
+        <button class="tile bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>MANDAT</button>
+        <button class="tile bg-blue" onclick="otworzOkno('dispatch')">PRZYJMIJ<br>ZGŁOSZENIE (999)</button>
+
+        <button class="tile bg-blue" onclick="otworzOkno('postac')">TWORZENIE<br>POSTACI</button>
+        <button class="tile bg-blue" onclick="otworzOkno('historia')">HISTORIA<br>INTERWENCJI</button>
     </div>
 
     <div class="bottom-bar">
         <button class="btn-small" onclick="otworzOkno('postac')">OPCJE / POSTAĆ</button>
-        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.1 - System RP')">i</button>
+        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.3 - System RP')">i</button>
     </div>
 
-    <!-- PANEL: LEGITYMOWANIE -->
+    <!-- PANEL: LEGITYMOWANIE OSÓB -->
     <div id="modal-legitymowanie" class="modal">
         <div class="modal-header">
             <span>LEGITYMOWANIE OBYWATELA</span>
@@ -214,7 +210,28 @@
         <button class="submit-btn" onclick="wyslijLegitymowanie()">WYŚLIJ RAPORT NA DISCORD</button>
     </div>
 
-    <!-- PANEL: INTERWENCJA / MANDAT Z TARYFIKATOREM -->
+    <!-- PANEL: KONTROLA POJAZDÓW -->
+    <div id="modal-pojazdy" class="modal">
+        <div class="modal-header">
+            <span>SPRAWDZANIE POJAZDU (CEPiK)</span>
+            <button class="close-btn" onclick="zamknijOkna()">X</button>
+        </div>
+        <label>Funkcjonariusz:</label>
+        <input type="text" id="v_policjant" readonly style="background: #e6e6e6;">
+        <label>Numer Rejestracyjny / Tablica:</label>
+        <input type="text" id="v_tablica" placeholder="np. W1 KOWAL">
+        <label>Marka / Model auta:</label>
+        <input type="text" id="v_auto" placeholder="np. Benefactor Schafter">
+        <label>Status pojazdu w bazie:</label>
+        <select id="v_status">
+            <option value="Czysty / Zarejestrowany poprawnie">Czysty / Zarejestrowany poprawnie</option>
+            <option value="POSZUKIWANY (Udział w przestępstwie)">POSZUKIWANY (Udział w przestępstwie)</option>
+            <option value="KRADZIONY / ZGŁOSZONY">KRADZIONY / ZGŁOSZONY</option>
+        </select>
+        <button class="submit-btn" onclick="wyslijPojazd()">SPRAWDŹ I WYŚLIJ NA DISCORD</button>
+    </div>
+
+    <!-- PANEL: MANDAT -->
     <div id="modal-mandat" class="modal">
         <div class="modal-header">
             <span>INTERWENCJA WŁASNA - MANDAT</span>
@@ -223,7 +240,7 @@
         <label>Funkcjonariusz:</label>
         <input type="text" id="m_policjant" readonly style="background: #e6e6e6;">
         <label>Obywatel:</label>
-        <input type="text" id="m_obywatel" placeholder="Imię i Nazwisko">
+        <input type="text" id="m_obywatel" placeholder="Jan Kowalski">
         
         <label>Wybierz z Taryfikatora:</label>
         <select id="m_taryfikator" onchange="wybierzZtaryfikatora()">
@@ -245,6 +262,19 @@
         <button class="submit-btn" onclick="wyslijMandat()">WYSTAW MANDAT NA DISCORD</button>
     </div>
 
+    <!-- PANEL: PRZYJMIJ ZGŁOSZENIE (DISPATCH) -->
+    <div id="modal-dispatch" class="modal">
+        <div class="modal-header">
+            <span>PRZYJĘCIE ZGŁOSZENIA (999)</span>
+            <button class="close-btn" onclick="zamknijOkna()">X</button>
+        </div>
+        <label>Lokalizacja / Miejsce zdarzenia:</label>
+        <input type="text" id="d_lokalizacja" placeholder="np. Legion Square / Bank">
+        <label>Opis zdarzenia:</label>
+        <textarea id="d_opis" rows="3" placeholder="Co się dzieje..."></textarea>
+        <button class="submit-btn" onclick="zagrajDzwonekAlarmu(); przyjmijZgloszenie();">🚨 JEDZIEMY NA INTERWENCJĘ</button>
+    </div>
+
     <!-- PANEL: TWORZENIE POSTACI -->
     <div id="modal-postac" class="modal">
         <div class="modal-header">
@@ -260,7 +290,7 @@
         <button class="submit-btn" onclick="wyslijPostac()">ZAPISZ POSTAĆ NA DISCORD</button>
     </div>
 
-    <!-- PANEL: HISTORIA INTERWENCJI -->
+    <!-- PANEL: HISTORIA -->
     <div id="modal-historia" class="modal">
         <div class="modal-header">
             <span>OSTATNIE INTERWENCJE</span>
@@ -285,10 +315,37 @@
         const WEBHOOK_POSTACIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_LEGITYMOWANIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_MANDATY = "https://discord.com/api/webhooks/1486258468955488306/b2qIf2Ilqt3VHuszdvtOIRHmOQK6le_4TS98vnz_xOCiIKBzbHLNtlJvYyzKvB4tK7cc";
+        const WEBHOOK_POJAZDY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_STATUSY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
-        const WEBHOOK_PANIKA = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH"; // Może być ten sam co STATUSY
+        const WEBHOOK_PANIKA = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
+        const WEBHOOK_DISPATCH = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
 
         let aktualnyOficer = "";
+
+        // SYNTEZATOR DŹWIĘKU "BIIP BIIP BIIP"
+        function zagrajDzwonekAlarmu() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                let playBeep = (czasOpoznienia, czestotliwosc) => {
+                    setTimeout(() => {
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        osc.type = "sine";
+                        osc.frequency.value = czestotliwosc;
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start();
+                        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
+                        osc.stop(audioCtx.currentTime + 0.2);
+                    }, czasOpoznienia);
+                };
+                playBeep(0, 900);
+                playBeep(250, 900);
+                playBeep(500, 1200);
+            } catch(e) {
+                console.log("Audio zablokowane.");
+            }
+        }
 
         function zaloguj() {
             const nr = document.getElementById('login_nr').value.trim();
@@ -303,6 +360,7 @@
                 document.querySelector('.top-bar-2').innerText = `OFICER: ${user.nazwa} (${nr}) | ${user.jednostka}`;
                 document.getElementById('l_policjant').value = aktualnyOficer;
                 document.getElementById('m_policjant').value = aktualnyOficer;
+                document.getElementById('v_policjant').value = aktualnyOficer;
             } else {
                 blad.style.display = 'block';
             }
@@ -381,67 +439,15 @@
             });
         }
 
-        // OBSŁUGA HISTORII W PAMIĘCI TELEFONU
-        function zapiszHistorie(typ, opis) {
-            let historia = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
-            let teraz = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-            historia.unshift({ czas: teraz, typ: typ, opis: opis });
-            if (historia.length > 10) historia.pop(); // Trzyma maksymalnie 10 ostatnich
-            localStorage.setItem('bluebird_historia', JSON.stringify(historia));
+        function przyjmijZgloszenie() {
+            let lok = document.getElementById('d_lokalizacja').value;
+            let opis = document.getElementById('d_opis').value;
+            if(!lok) { alert('Wpisz lokalizację!'); return; }
+
+            zapiszHistorie('DISPATCH', `Miejsce: <b>${lok}</b> | ${opis}`);
+            let msg = `📞 **PATROL PRZYJĄŁ ZGŁOSZENIE**\n• **Funkcjonariusz:** ${aktualnyOficer}\n• **Lokalizacja:** ${lok}\n• **Opis:** ${opis}`;
+            wyslijDoDiscorda(WEBHOOK_DISPATCH, msg);
         }
 
-        function pokazHistorie() {
-            let kontener = document.getElementById('lista-historii');
-            let historia = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
-            if (historia.length === 0) {
-                kontener.innerHTML = '<p style="text-align:center; color:#666;">Brak zapisanych interwencji.</p>';
-                return;
-            }
-            kontener.innerHTML = historia.map(h => `
-                <div class="history-item">
-                    <div class="history-time">${h.czas} | <b>${h.typ}</b></div>
-                    <div>${h.opis}</div>
-                </div>
-            `).join('');
-        }
-
-        function wyczyscHistorie() {
-            localStorage.removeItem('bluebird_historia');
-            pokazHistorie();
-        }
-
-        function wyslijLegitymowanie() {
-            let p = document.getElementById('l_policjant').value;
-            let o = document.getElementById('l_obywatel').value;
-            let s = document.getElementById('l_status').value;
-            let n = document.getElementById('l_notatki').value;
-            if(!o) { alert('Wpisz obywatela!'); return; }
-            
-            zapiszHistorie('LEGITYMOWANIE', `Obywatel: <b>${o}</b> | Status: ${s}`);
-            let msg = `🔍 **RAPORT Z LEGITYMOWANIA**\n• **Oficer:** ${p}\n• **Sprawdzany:** ${o}\n• **Status w bazie:** **${s}**\n• **Notatki:** ${n}`;
-            wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, msg);
-        }
-
-        function wyslijMandat() {
-            let p = document.getElementById('m_policjant').value;
-            let o = document.getElementById('m_obywatel').value;
-            let pow = document.getElementById('m_powod').value;
-            let k = document.getElementById('m_kwota').value;
-            if(!o) { alert('Wpisz obywatela!'); return; }
-            
-            zapiszHistorie('MANDAT', `Obywatel: <b>${o}</b> | Kwota: ${k} PLN (${pow})`);
-            let msg = `🚨 **WYSTAWIONO MANDAT**\n• **Funkcjonariusz:** ${p}\n• **Obywatel:** ${o}\n• **Powód:** ${pow}\n• **Kwota:** ${k} PLN`;
-            wyslijDoDiscorda(WEBHOOK_MANDATY, msg);
-        }
-
-        function wyslijPostac() {
-            let i = document.getElementById('p_imie').value;
-            let w = document.getElementById('p_wiek').value;
-            let r = document.getElementById('p_rysopis').value;
-            if(!i) { alert('Wpisz imię i nazwisko!'); return; }
-            let msg = `👤 **REJESTRACJA NOWEJ POSTACI**\n• **Imię i Nazwisko:** ${i}\n• **Wiek:** ${w}\n• **Rysopis:** ${r}`;
-            wyslijDoDiscorda(WEBHOOK_POSTACIE, msg);
-        }
-    </script>
-</body>
-</html>
+        // HISTORIA
+        function zapiszHis
