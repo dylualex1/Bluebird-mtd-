@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bluebird MDT</title>
+    
+    <!-- BIBLIOTEKI FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
     <style>
         * { box-sizing: border-box; font-family: 'Roboto', Arial, sans-serif; }
         body { margin: 0; padding: 0; background-color: #f2f2f2; color: #222; }
@@ -61,6 +66,8 @@
         .history-item { background: white; border-left: 4px solid #3a6bc4; padding: 10px; margin-bottom: 10px; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .history-time { font-size: 11px; color: #777; margin-bottom: 4px; }
         .clear-btn { background: #d9534f; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        
+        .citizen-result-card { background: #fff; border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
@@ -77,7 +84,7 @@
     </div>
 
     <!-- EKRAN GŁÓWNY BLUEBIRD -->
-    <div class="top-bar-1">Broadcaster: Połączony</div>
+    <div class="top-bar-1">Broadcaster: Połączony z Firebase (telefon-rp)</div>
     <div class="top-bar-2">ZALOGUJ SIĘ DO SYSTEMU</div>
     
     <button id="statusBtn" class="status-btn" onclick="zmienStatus()">
@@ -89,7 +96,7 @@
     </button>
 
     <div class="grid">
-        <button class="tile bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIA<br>OSÓB</button>
+        <button class="tile bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIE<br>OSÓB</button>
         <button class="tile bg-light-blue" onclick="otworzOkno('pojazdy')">KONTROLA<br>POJAZDÓW</button>
 
         <button class="tile bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>MANDAT</button>
@@ -101,21 +108,19 @@
 
     <div class="bottom-bar">
         <button class="btn-small" onclick="otworzOkno('postac')">OPCJE / POSTAĆ</button>
-        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.5 - System RP')">i</button>
+        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v2.6 - Firebase Sync')">i</button>
     </div>
 
     <!-- PANELE (MODALE) -->
     <div id="modal-legitymowanie" class="modal">
-        <div class="modal-header"><span>LEGITYMOWANIE OBYWATELA</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+        <div class="modal-header"><span>LEGITYMOWANIE OBYWATELA (Baza mObywatel)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
         <label>Oficer sprawdzający:</label><input type="text" id="l_policjant" readonly style="background: #e6e6e6;">
-        <label>Osoba legitymowana:</label><input type="text" id="l_obywatel" placeholder="Jan Kowalski">
-        <label>Status w bazie:</label>
-        <select id="l_status">
-            <option value="Czysty / Brak poszukiwań">Czysty / Brak poszukiwań</option>
-            <option value="POSZUKIWANY (Uwaga! Niebezpieczny)">POSZUKIWANY (Uwaga! Niebezpieczny)</option>
-            <option value="Posiada nakaz zatrzymania">Posiada nakaz zatrzymania</option>
-        </select>
-        <label>Notatki:</label><input type="text" id="l_notatki" placeholder="np. Kontrola drogowa">
+        <label>Szukaj w bazie (PESEL, Imię/Nazwisko, Discord lub Tel):</label>
+        <input type="text" id="l_obywatel" placeholder="Wpisz np. PESEL lub Kowalski" oninput="szukajWTelefonie()">
+        
+        <div id="wyniki-wyszukiwania"></div>
+
+        <label style="margin-top: 15px;">Notatki z interwencji:</label><input type="text" id="l_notatki" placeholder="np. Kontrola drogowa">
         <button class="submit-btn" onclick="wyslijLegitymowanie()">WYŚLIJ RAPORT NA DISCORD</button>
     </div>
 
@@ -171,15 +176,38 @@
 
     <script>
         // ==========================================
-        // 1. BAZA UŻYTKOWNIKÓW (NUMER I PIN)
+        // 1. KONFIGURACJA FIREBASE (TA SAMA CO W TELEFONIE)
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCGJbpt3_AhHf1Sjs1CQCi0BgoSbeeJj-A",
+            authDomain: "telefon-rp.firebaseapp.com",
+            databaseURL: "https://telefon-rp-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "telefon-rp",
+            storageBucket: "telefon-rp.firebasestorage.app",
+            messagingSenderId: "435004215498",
+            appId: "1:435004215498:web:fe4f4fe25dc15e1b056433",
+            measurementId: "G-D46V1EX5G1"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let globalCitizensCache = {};
+
+        // Pobieranie obywateli z bazy na żywo
+        db.ref('citizens').on('value', (snapshot) => {
+            globalCitizensCache = snapshot.val() || {};
+        });
+
+        // ==========================================
+        // 2. BAZA UŻYTKOWNIKÓW (NUMER I PIN)
         // ==========================================
         const UZYTKOWNICY = {
             "123456": { pin: "0000", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
-            "123456":  { pin: "0000", nazwa: "Post. Nowak",     jednostka: "PATROL-02" }
+            "123456": { pin: "0000", nazwa: "Post. Nowak", jednostka: "PATROL-02" }
         };
 
         // ==========================================
-        // 2. TUTAJ WKLEJ SWOJE LINKI WEBHOOK Z DISCORDA
+        // 3. TUTAJ SWOJE LINKI WEBHOOK Z DISCORDA
         // ==========================================
         const WEBHOOK_POSTACIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
         const WEBHOOK_LEGITYMOWANIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
@@ -190,6 +218,7 @@
         const WEBHOOK_DISPATCH = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
 
         let aktualnyOficer = "";
+        let aktualnieWybranyObywatel = "";
 
         function zagrajDzwonekAlarmu() {
             try {
@@ -295,6 +324,53 @@
             }).catch(err => console.error(err));
         }
 
+        // Wyszukiwanie w bazie obywateli (pobranej z Firebase z telefonu)
+        function szukajWTelefonie() {
+            let query = document.getElementById('l_obywatel').value.trim().toLowerCase();
+            let wynDiv = document.getElementById('wyniki-wyszukiwania');
+            
+            if (!query) {
+                wynDiv.innerHTML = '';
+                aktualnieWybranyObywatel = "";
+                return;
+            }
+
+            let entries = Object.entries(globalCitizensCache);
+            let matches = entries.filter(([num, c]) => 
+                c.pesel.toLowerCase().includes(query) || 
+                c.name.toLowerCase().includes(query) || 
+                (c.discord && c.discord.toLowerCase().includes(query)) || 
+                num.includes(query)
+            );
+
+            if (matches.length === 0) {
+                wynDiv.innerHTML = `<p style="font-size:12px; color:#d9534f; margin-top:5px;">Brak obywatela w bazie mObywatel.</p>`;
+                aktualnieWybranyObywatel = document.getElementById('l_obywatel').value;
+                return;
+            }
+
+            wynDiv.innerHTML = matches.map(([num, c]) => `
+                <div class="citizen-result-card" style="border-left: 4px solid ${c.suspended ? '#e74c3c' : '#2ecc71'};">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${c.name}</b>
+                        <span style="font-size:11px; color:${c.suspended ? '#e74c3c' : '#2ecc71'}; font-weight:bold;">${c.suspended ? '🛑 Zastrzeżony' : '✅ Aktywny'}</span>
+                    </div>
+                    <div style="font-size:12px; color:#555;">PESEL: ${c.pesel} | Urodzenie: ${c.dob}</div>
+                    <div style="font-size:12px; color:#555;">Discord: ${c.discord || 'Brak'} | Tel: ${num}</div>
+                    <button type="button" class="submit-btn" style="padding:6px; margin-top:8px; font-size:12px; background:#3a6bc4;" onclick="wybierzObywatelaDoRaportu('${c.name}', '${c.pesel}', ${c.suspended})">Wybierz do raportu</button>
+                </div>
+            `).join('');
+        }
+
+        function wybierzObywatelaDoRaportu(name, pesel, isSuspended) {
+            document.getElementById('l_obywatel').value = `${name} (PESEL: ${pesel})`;
+            aktualnieWybranyObywatel = `${name} (PESEL: ${pesel})`;
+            if(isSuspended) {
+                document.getElementById('l_notatki').value = "UWAGA: Dokument obywatela jest Zastrzeżony!";
+            }
+            alert(`Wybrano obywatela: ${name}`);
+        }
+
         function przyjmijZgloszenie() {
             let lok = document.getElementById('d_lokalizacja').value;
             let opis = document.getElementById('d_opis').value;
@@ -321,11 +397,11 @@
         function wyczyscHistorie() { localStorage.removeItem('bluebird_historia'); pokazHistorie(); }
 
         function wyslijLegitymowanie() {
-            let o = document.getElementById('l_obywatel').value;
-            let s = document.getElementById('l_status').value;
-            if(!o) { alert('Wpisz obywatela!'); return; }
-            zapiszHistorie('LEGITYMOWANIE', `${o} - ${s}`);
-            wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, `🔍 **LEGITYMOWANIE:** ${aktualnyOficer} | ${o} | Status: **${s}**`);
+            let o = aktualnieWybranyObywatel || document.getElementById('l_obywatel').value;
+            let notatki = document.getElementById('l_notatki').value;
+            if(!o) { alert('Wpisz lub wybierz obywatela!'); return; }
+            zapiszHistorie('LEGITYMOWANIE', `${o} - ${notatki}`);
+            wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, `🔍 **LEGITYMOWANIE:** ${aktualnyOficer} | Obywatel: **${o}** | Notatki: ${notatki}`);
         }
 
         function wyslijPojazd() {
