@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bluebird MDT - Pełny System</title>
+    <title>Bluebird EF500R - MDT</title>
     
     <!-- BIBLIOTEKI FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -11,530 +11,602 @@
 
     <style>
         * { box-sizing: border-box; font-family: 'Roboto', Arial, sans-serif; }
-        body { margin: 0; padding: 0; background-color: #f2f2f2; color: #222; }
-        
+        body {
+            margin: 0; padding: 10px; background-color: #121417; color: #222;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        /* OBUDOWA TERMINALA BLUEBIRD EF500R */
+        .bluebird-device {
+            width: 100%; max-width: 410px; height: 92vh; max-height: 830px;
+            background: #1d2024;
+            border-radius: 36px;
+            padding: 14px 14px 18px 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.85), inset 0 0 0 4px #2c3036, inset 0 0 12px #000;
+            border: 4px solid #111316;
+            display: flex; flex-direction: column; position: relative;
+        }
+
+        /* Wzmocnione narożniki pancerne */
+        .bluebird-device::before {
+            content: ""; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border-radius: 40px; border: 3px solid #2b2f35; pointer-events: none;
+        }
+
+        .bb-top-bezel {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 4px 0 10px 0; color: #b0b6be; position: relative;
+        }
+        .bb-speaker { width: 55px; height: 5px; background: #0d0e10; border-radius: 3px; margin-bottom: 6px; border: 1px solid #333; }
+        .bb-camera { position: absolute; right: 22px; top: 10px; width: 12px; height: 12px; background: #0a0c10; border-radius: 50%; border: 2px solid #2c3138; }
+        .bb-logo { font-size: 13px; font-weight: 900; letter-spacing: 3px; color: #cfd6df; text-shadow: 0 1px 2px #000; }
+
+        /* EKRAN WEWNĄTRZ TERMINALA */
+        .bb-screen {
+            flex: 1; background-color: #f2f2f2; border-radius: 6px;
+            overflow: hidden; position: relative; display: flex; flex-direction: column;
+            border: 2px solid #090a0c;
+        }
+
+        /* DOLNY PANEL OBUDOWY */
+        .bb-bottom-bezel {
+            padding-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+        .bb-hw-buttons {
+            display: flex; justify-content: space-around; width: 100%; color: #8c939c; font-size: 16px;
+        }
+        .bb-hw-btn { cursor: pointer; padding: 4px 16px; user-select: none; }
+        .bb-hw-btn:active { color: #fff; }
+        .bb-grill {
+            width: 85%; height: 10px; border-radius: 5px;
+            background: radial-gradient(#0b0c0e 35%, transparent 40%) 0 0 / 6px 6px, #2b2f36;
+            border: 1px solid #15171a;
+        }
+
+        /* EKRAN LOGOWANIA */
         #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #161b22; color: white; z-index: 99999;
             display: flex; flex-direction: column; justify-content: center; padding: 25px;
         }
-        #login-screen h2 { text-align: center; color: #58a6ff; margin-bottom: 20px; font-size: 22px; }
-        #login-screen label { color: #8b949e; margin-top: 15px; font-size: 14px; display: block; }
-        #login-screen input { width: 100%; padding: 12px; margin-top: 5px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 5px; font-size: 16px; }
-        #login-screen button { width: 100%; padding: 14px; margin-top: 25px; background: #238636; color: white; border: none; font-weight: bold; font-size: 16px; border-radius: 5px; cursor: pointer; }
+        #login-screen h2 { text-align: center; color: #58a6ff; margin-bottom: 20px; font-size: 20px; }
+        #login-screen label { color: #8b949e; margin-top: 15px; font-size: 13px; display: block; }
+        #login-screen input { width: 100%; padding: 12px; margin-top: 5px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 5px; font-size: 15px; }
+        #login-screen button { width: 100%; padding: 14px; margin-top: 25px; background: #238636; color: white; border: none; font-weight: bold; font-size: 15px; border-radius: 5px; cursor: pointer; }
         
-        .top-bar-1 { background-color: #4c8c2b; color: white; text-align: center; font-size: 12px; padding: 4px; font-weight: bold; }
+        /* INTERFEJS SYSTEMU */
+        .top-bar-1 { background-color: #4c8c2b; color: white; text-align: center; font-size: 11px; padding: 4px; font-weight: bold; }
         .top-bar-2 { background-color: #6ab03b; color: #1b3b09; font-size: 11px; padding: 4px 8px; margin-top: 2px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
+        .screen-content { flex: 1; overflow-y: auto; padding-bottom: 10px; }
+
         .status-btn {
-            background-color: #76c043; color: #000; font-weight: bold; font-size: 14px;
-            padding: 16px 12px; margin: 8px 6px 4px 6px; border: none; width: calc(100% - 12px);
+            background-color: #76c043; color: #000; font-weight: bold; font-size: 13px;
+            padding: 12px; margin: 8px 6px 4px 6px; border: none; width: calc(100% - 12px);
             text-align: left; cursor: pointer; text-transform: uppercase;
         }
         .status-btn.busy { background-color: #e6a800; }
         .status-btn.break { background-color: #d9534f; color: white; }
 
         .panic-btn {
-            background-color: #c9302c; color: white; font-weight: bold; font-size: 14px;
-            padding: 12px; margin: 4px 6px 8px 6px; border: 2px solid #961f1c; width: calc(100% - 12px);
+            background-color: #c9302c; color: white; font-weight: bold; font-size: 13px;
+            padding: 10px; margin: 4px 6px 8px 6px; border: 2px solid #961f1c; width: calc(100% - 12px);
             text-align: center; cursor: pointer; text-transform: uppercase; border-radius: 3px;
         }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 6px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 6px; }
         .tile {
-            border: none; color: white; font-weight: bold; font-size: 12px; text-transform: uppercase;
-            display: flex; align-items: center; justify-content: center; text-align: center;
-            cursor: pointer; padding: 10px; border-radius: 2px; height: 85px;
+            border: none; color: white; font-weight: bold; font-size: 11px; text-transform: uppercase;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            cursor: pointer; padding: 8px; border-radius: 3px; height: 74px; position: relative;
         }
         .bg-light-blue { background-color: #6ea1d4; }
         .bg-blue { background-color: #3a6bc4; }
         .bg-teal { background-color: #16a085; }
         .bg-purple { background-color: #8e44ad; }
+        .bg-red { background-color: #c0392b; }
+        .bg-orange { background-color: #d35400; }
 
-        .bottom-bar { display: flex; justify-content: center; align-items: center; position: relative; padding: 12px 6px; margin-top: 5px; }
-        .btn-small { background-color: #3a6bc4; color: white; border: none; padding: 10px 20px; font-weight: bold; font-size: 12px; cursor: pointer; border-radius: 2px; }
-        .btn-info { position: absolute; right: 6px; padding: 10px 14px; }
+        .badge {
+            position: absolute; top: 4px; right: 4px; background: #ffeb3b; color: #000;
+            font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px;
+        }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f2f2f2; z-index: 100; padding: 15px; overflow-y: auto; }
+        .bottom-bar { display: flex; justify-content: center; align-items: center; position: relative; padding: 8px 6px; }
+        .btn-small { background-color: #3a6bc4; color: white; border: none; padding: 8px 16px; font-weight: bold; font-size: 11px; cursor: pointer; border-radius: 2px; }
+        .btn-info { position: absolute; right: 6px; padding: 8px 12px; }
+
+        /* MODALE WEWNĄTRZ EKRANU */
+        .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f2f2f2; z-index: 100; padding: 12px; overflow-y: auto; }
         .modal.active { display: block; }
-        .modal-header { background: #3a6bc4; color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin: -15px -15px 15px -15px; }
-        .close-btn { background: #d9534f; color: white; border: none; padding: 6px 12px; font-weight: bold; cursor: pointer; }
-        label { display: block; margin-top: 12px; font-size: 13px; font-weight: bold; color: #333; }
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #bbb; background: white; font-size: 14px; }
-        .submit-btn { width: 100%; padding: 14px; margin-top: 20px; background: #4c8c2b; color: white; border: none; font-weight: bold; font-size: 15px; cursor: pointer; }
+        .modal-header { background: #3a6bc4; color: white; padding: 10px; font-weight: bold; font-size: 13px; display: flex; justify-content: space-between; align-items: center; margin: -12px -12px 12px -12px; }
+        .close-btn { background: #d9534f; color: white; border: none; padding: 5px 10px; font-weight: bold; cursor: pointer; }
+        label { display: block; margin-top: 10px; font-size: 12px; font-weight: bold; color: #333; }
+        input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #bbb; background: white; font-size: 13px; }
+        .submit-btn { width: 100%; padding: 12px; margin-top: 15px; background: #4c8c2b; color: white; border: none; font-weight: bold; font-size: 13px; cursor: pointer; }
 
-        .history-item { background: white; border-left: 4px solid #3a6bc4; padding: 10px; margin-bottom: 10px; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .history-time { font-size: 11px; color: #777; margin-bottom: 4px; }
-        .clear-btn { background: #d9534f; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .citizen-result-card { background: #fff; border: 1px solid #ccc; padding: 10px; margin-top: 10px; border-radius: 6px; }
+        .history-item { background: white; border-left: 4px solid #3a6bc4; padding: 8px; margin-bottom: 8px; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .citizen-result-card { background: #fff; border: 1px solid #ccc; padding: 10px; margin-top: 8px; border-radius: 5px; font-size: 12px; }
+        .wanted-banner { background: #c0392b; color: white; padding: 6px; font-weight: bold; text-align: center; border-radius: 4px; margin-top: 6px; font-size: 11px; }
     </style>
 </head>
 <body>
 
-    <!-- EKRAN LOGOWANIA -->
-    <div id="login-screen">
-        <h2>BLUEBIRD MDT - LOGOWANIE</h2>
-        <label>Numer służbowy:</label>
-        <input type="text" id="login_nr" placeholder="np. 1304720" value="1304720">
-        <label>PIN:</label>
-        <input type="password" id="login_pin" placeholder="******" value="123456">
-        <button type="button" onclick="zaloguj()">ZALOGUJ DO TERMINALA</button>
-        <p id="login_blad" style="color: #ff6b6b; text-align: center; font-weight: bold; display: none; margin-top: 15px;">Błędny numer lub PIN!</p>
+<div class="bluebird-device">
+    <!-- GÓRNA CZĘŚĆ OBUDOWY -->
+    <div class="bb-top-bezel">
+        <div class="bb-speaker"></div>
+        <div class="bb-camera"></div>
+        <div class="bb-logo">BLUEBIRD</div>
     </div>
 
-    <!-- EKRAN GŁÓWNY BLUEBIRD -->
-    <div class="top-bar-1">Broadcaster: Połączony z Firebase (telefon-rp)</div>
-    <div class="top-bar-2">ZALOGUJ SIĘ DO SYSTEMU</div>
-    
-    <button id="statusBtn" class="status-btn" onclick="zmienStatus()">
-        STATUS PATROLU: WOLNY (10-8)
-    </button>
+    <!-- EKRAN TERMINALA -->
+    <div class="bb-screen">
+        <!-- EKRAN LOGOWANIA -->
+        <div id="login-screen">
+            <h2>BLUEBIRD MDT - LOGOWANIE</h2>
+            <label>Numer służbowy:</label>
+            <input type="text" id="login_nr" value="1304720">
+            <label>PIN:</label>
+            <input type="password" id="login_pin" value="123456">
+            <button type="button" onclick="zaloguj()">ZALOGUJ DO TERMINALA</button>
+            <p id="login_blad" style="color: #ff6b6b; text-align: center; font-weight: bold; display: none; margin-top: 15px;">Błędny numer lub PIN!</p>
+        </div>
 
-    <button class="panic-btn" onclick="zagrajDzwonekAlarmu(); wyslijPanike();">
-        🚨 PANIKA / PILNE WSPARCIE (10-99)
-    </button>
-
-    <div class="grid">
-        <button class="tile bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIE<br>OSÓB</button>
-        <button class="tile bg-teal" onclick="otworzOkno('pojazdy')">KONTROLA<br>POJAZDÓW (CEPiK)</button>
-
-        <button class="tile bg-blue" onclick="otworzOkno('mandat')">INTERWENCJA<br>MANDAT (AUTO-KONTO)</button>
-        <button class="tile bg-blue" onclick="otworzOkno('bron')">POZWOLENIA<br>NA BROŃ</button>
-
-        <button class="tile bg-blue" onclick="otworzOkno('dispatch')">PRZYJMIJ<br>ZGŁOSZENIE (999)</button>
-        <button class="tile bg-purple" onclick="otworzPanelModeratora()">🛡️ PANEL<br>MODERATORA</button>
-    </div>
-
-    <div class="bottom-bar">
-        <button class="btn-small" onclick="otworzOkno('historia')">HISTORIA INTERWENCJI</button>
-        <button class="btn-small btn-info" onclick="alert('Bluebird MDT v3.5 - Full System')">i</button>
-    </div>
-
-    <!-- PANELE (MODALE) -->
-    
-    <!-- 1. LEGITYMOWANIE -->
-    <div id="modal-legitymowanie" class="modal">
-        <div class="modal-header"><span>LEGITYMOWANIE OBYWATELA (mObywatel)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <label>Oficer sprawdzający:</label><input type="text" id="l_policjant" readonly style="background: #e6e6e6;">
-        <label>Szukaj w bazie (PESEL, Imię, Discord lub Tel):</label>
-        <input type="text" id="l_obywatel" placeholder="Wpisz np. PESEL lub Kowalski" oninput="szukajWTelefonie()">
-        <div id="wyniki-wyszukiwania"></div>
-        <label style="margin-top: 15px;">Notatki z interwencji:</label><input type="text" id="l_notatki" placeholder="np. Kontrola drogowa">
-        <button class="submit-btn" onclick="wyslijLegitymowanie()">WYŚLIJ RAPORT NA DISCORD</button>
-    </div>
-
-    <!-- 2. KONTROLA POJAZDÓW (CEPiK) -->
-    <div id="modal-pojazdy" class="modal">
-        <div class="modal-header"><span>CEPiK - KONTROLA POJAZDU</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <label>Wpisz tablicę rejestracyjną lub model:</label>
-        <input type="text" id="v_szukaj_tablica" placeholder="np. W1 KOWAL" oninput="szukajPojazdu()">
-        <div id="wyniki-pojazdow"></div>
-    </div>
-
-    <!-- 3. MANDATY (Z POBRANIEM Z KONTA) -->
-    <div id="modal-mandat" class="modal">
-        <div class="modal-header"><span>WYSTAW MANDAT (Auto-pobranie)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <label>Funkcjonariusz:</label><input type="text" id="m_policjant" readonly style="background: #e6e6e6;">
-        <label>Wybierz obywatela z bazy:</label>
-        <select id="m_wybrany_obywatel" style="margin-bottom:10px;"><option value="">-- Wybierz obywatela --</option></select>
-        <label>Taryfikator:</label>
-        <select id="m_taryfikator" onchange="wybierzZtaryfikatora()">
-            <option value="">-- Wybierz z listy --</option>
-            <option value="Przekroczenie prędkości|300">Przekroczenie prędkości - 300 PLN</option>
-            <option value="Nieustąpienie pierwszeństwa|200">Nieustąpienie pierwszeństwa - 200 PLN</option>
-            <option value="Ucieczka przed Policją|2500">Ucieczka przed Policją - 2500 PLN</option>
-            <option value="Zakłócenie porządku|150">Zakłócenie porządku - 150 PLN</option>
-        </select>
-        <label>Powód:</label><input type="text" id="m_powod" placeholder="np. Przekroczenie prędkości">
-        <label>Kwota (PLN):</label><input type="number" id="m_kwota" placeholder="300">
-        <button class="submit-btn" onclick="wyslijMandat()">WYSTAW I POBIERZ ŚRODKI Z KONTA</button>
-    </div>
-
-    <!-- 4. POZWOLENIA NA BROŃ -->
-    <div id="modal-bron" class="modal">
-        <div class="modal-header"><span>SYSTEM POZWOLEŃ NA BROŃ</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <label>Wybierz obywatela z bazy:</label>
-        <select id="gun_select_obywatel" style="margin-bottom:15px;"><option value="">-- Wybierz --</option></select>
-        <button class="submit-btn" style="background:#27ae60;" onclick="zmienPozwolenieNaBron(true)">✅ ZATWIERDŹ POZWOLENIE NA BROŃ</button>
-        <button class="submit-btn" style="background:#c0392b; margin-top:10px;" onclick="zmienPozwolenieNaBron(false)">❌ ODBIERZ POZWOLENIE NA BROŃ</button>
-    </div>
-
-    <!-- 5. DISPATCH (ZGŁOSZENIA) -->
-    <div id="modal-dispatch" class="modal">
-        <div class="modal-header"><span>ZGŁOSZENIE (999)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <label>Lokalizacja:</label><input type="text" id="d_lokalizacja" placeholder="np. Bank Główny">
-        <label>Opis zgłoszenia:</label><textarea id="d_opis" rows="3" placeholder="Szczegóły..."></textarea>
-        <button class="submit-btn" onclick="zagrajDzwonekAlarmu(); przyjmijZgloszenie();">🚨 JEDZIEMY DO ZGŁOSZENIA</button>
-    </div>
-
-    <!-- 6. HISTORIA -->
-    <div id="modal-historia" class="modal">
-        <div class="modal-header"><span>HISTORIA INTERWENCJI</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <div id="lista-historii"></div>
-        <button class="clear-btn" onclick="wyczyscHistorie()">WYCZYŚĆ HISTORIĘ</button>
-    </div>
-
-    <!-- 7. PANEL MODERATORA -->
-    <div id="modal-mod" class="modal">
-        <div class="modal-header"><span>🛡️ PANEL MODERATORA (Bluebird)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
-        <p style="font-size:12px; color:#555;">Zarządzaj numerami telefonów, dowodami i saldami kont:</p>
-        <div id="bb-mod-list"></div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCGJbpt3_AhHf1Sjs1CQCi0BgoSbeeJj-A",
-            authDomain: "telefon-rp.firebaseapp.com",
-            databaseURL: "https://telefon-rp-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "telefon-rp",
-            storageBucket: "telefon-rp.firebasestorage.app",
-            messagingSenderId: "435004215498",
-            appId: "1:435004215498:web:fe4f4fe25dc15e1b056433",
-            measurementId: "G-D46V1EX5G1"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        <div class="top-bar-1">Broadcaster: Połączony z Firebase (telefon-rp)</div>
+        <div class="top-bar-2">ZALOGUJ SIĘ DO SYSTEMU</div>
         
-        let globalCitizensCache = {};
-        let globalAccountsCache = {};
-        let globalVehiclesCache = {};
-        let globalClaimedNumbers = {};
+        <div class="screen-content">
+            <button id="statusBtn" class="status-btn" onclick="zmienStatus()">STATUS PATROLU: WOLNY (10-8)</button>
+            <button class="panic-btn" onclick="zagrajDzwonekAlarmu(); wyslijPanike();">🚨 PANIKA / WSPARCIE (10-99)</button>
 
-        db.ref('citizens').on('value', (snapshot) => {
-            globalCitizensCache = snapshot.val() || {};
-            odswiezSelecty();
-            if (document.getElementById('modal-mod').classList.contains('active')) renderBluebirdModList();
-        });
+            <div class="grid">
+                <button class="tile bg-light-blue" onclick="otworzOkno('legitymowanie')">LEGITYMOWANIE<br>I AKTA OSÓB</button>
+                <button class="tile bg-teal" onclick="otworzOkno('pojazdy')">KONTROLA<br>POJAZDÓW (CEPiK)</button>
 
-        db.ref('bank_accounts').on('value', (snapshot) => {
-            globalAccountsCache = snapshot.val() || {};
-            if (document.getElementById('modal-mod').classList.contains('active')) renderBluebirdModList();
-        });
+                <button class="tile bg-blue" onclick="otworzOkno('mandat')">WYSTAW<br>MANDAT</button>
+                <button class="tile bg-red" onclick="otworzOkno('poszukiwania')">POSZUKIWANIA<br>I ARESZT</button>
 
-        db.ref('vehicles').on('value', (snapshot) => {
-            globalVehiclesCache = snapshot.val() || {};
-        });
+                <button class="tile bg-orange" onclick="otworzOkno('dispatch')">
+                    ZGŁOSZENIA<br>(997 / 999)
+                    <span id="dispatch-badge" class="badge" style="display:none;">0</span>
+                </button>
+                <button class="tile bg-blue" onclick="otworzOkno('bron')">POZWOLENIA<br>NA BROŃ</button>
 
-        db.ref('claimed_numbers').on('value', (snapshot) => {
-            globalClaimedNumbers = snapshot.val() || {};
-            if (document.getElementById('modal-mod').classList.contains('active')) renderBluebirdModList();
-        });
+                <button class="tile bg-purple" onclick="otworzPanelModeratora()">🛡️ PANEL<br>MODERATORA</button>
+                <button class="tile bg-blue" onclick="otworzOkno('historia')">HISTORIA<br>PATROLU</button>
+            </div>
 
-        const UZYTKOWNICY = {
-            "123456": { pin: "0000", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
-            "123456": { pin: "0000", nazwa: "Post. Nowak", jednostka: "PATROL-02" }
-        };
+            <div class="bottom-bar">
+                <button class="btn-small" onclick="alert('Bluebird EF500R MDT v4.0')">SYSTEM INFO</button>
+            </div>
+        </div>
 
-        const WEBHOOK_LEGITYMOWANIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
-        const WEBHOOK_MANDATY = "https://discord.com/api/webhooks/1486258468955488306/b2qIf2Ilqt3VHuszdvtOIRHmOQK6le_4TS98vnz_xOCiIKBzbHLNtlJvYyzKvB4tK7cc";
-        const WEBHOOK_POJAZDY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
-        const WEBHOOK_STATUSY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
-        const WEBHOOK_PANIKA = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
-        const WEBHOOK_DISPATCH = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
+        <!-- 1. LEGITYMOWANIE + AKTA -->
+        <div id="modal-legitymowanie" class="modal">
+            <div class="modal-header"><span>LEGITYMOWANIE I AKTA</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <label>Szukaj (PESEL, Imię, Tel):</label>
+            <input type="text" id="l_obywatel" placeholder="Wpisz np. Kowalski lub PESEL" oninput="szukajWTelefonie()">
+            <div id="wyniki-wyszukiwania"></div>
+            <label style="margin-top: 12px;">Notatki z kontroli:</label>
+            <input type="text" id="l_notatki" placeholder="np. Kontrola drogowa">
+            <button class="submit-btn" onclick="wyslijLegitymowanie()">WYŚLIJ RAPORT NA DISCORD</button>
+        </div>
 
-        let aktualnyOficer = "";
-        let aktualnieWybranyObywatel = "";
+        <!-- 2. CEPiK -->
+        <div id="modal-pojazdy" class="modal">
+            <div class="modal-header"><span>CEPiK - KONTROLA POJAZDU</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <label>Tablica rejestracyjna lub model:</label>
+            <input type="text" id="v_szukaj_tablica" placeholder="np. W1 KOWAL" oninput="szukajPojazdu()">
+            <div id="wyniki-pojazdow"></div>
+        </div>
 
-        function zagrajDzwonekAlarmu() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                let playBeep = (czasOpoznienia, czestotliwosc) => {
-                    setTimeout(() => {
-                        let osc = audioCtx.createOscillator();
-                        let gain = audioCtx.createGain();
-                        osc.type = "sine";
-                        osc.frequency.value = czestotliwosc;
-                        osc.connect(gain);
-                        gain.connect(audioCtx.destination);
-                        osc.start();
-                        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2);
-                        osc.stop(audioCtx.currentTime + 0.2);
-                    }, czasOpoznienia);
-                };
-                playBeep(0, 900);
-                playBeep(250, 900);
-                playBeep(500, 1200);
-            } catch(e) {}
+        <!-- 3. MANDATY -->
+        <div id="modal-mandat" class="modal">
+            <div class="modal-header"><span>WYSTAW MANDAT (Auto-pobranie)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <label>Wybierz obywatela:</label>
+            <select id="m_wybrany_obywatel"><option value="">-- Wybierz --</option></select>
+            <label>Taryfikator:</label>
+            <select id="m_taryfikator" onchange="wybierzZtaryfikatora()">
+                <option value="">-- Wybierz z listy --</option>
+                <option value="Przekroczenie prędkości|300">Przekroczenie prędkości - 300 PLN</option>
+                <option value="Nieustąpienie pierwszeństwa|200">Nieustąpienie pierwszeństwa - 200 PLN</option>
+                <option value="Ucieczka przed Policją|2500">Ucieczka przed Policją - 2500 PLN</option>
+                <option value="Zakłócenie porządku|150">Zakłócenie porządku - 150 PLN</option>
+            </select>
+            <label>Powód:</label><input type="text" id="m_powod" placeholder="np. Przekroczenie prędkości">
+            <label>Kwota (PLN):</label><input type="number" id="m_kwota" placeholder="300">
+            <button class="submit-btn" onclick="wyslijMandat()">WYSTAW I POBIERZ ŚRODKI</button>
+        </div>
+
+        <!-- 4. POSZUKIWANIA (NAKAZ) I ARESZTOWANIE -->
+        <div id="modal-poszukiwania" class="modal">
+            <div class="modal-header"><span>POSZUKIWANIA I ARESZT</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <label>Wybierz obywatela:</label>
+            <select id="w_wybrany_obywatel"><option value="">-- Wybierz --</option></select>
+            
+            <label>Powód nakazu / aresztowania:</label>
+            <input type="text" id="w_powod" placeholder="np. Napad na bank / Ucieczka">
+
+            <button class="submit-btn" style="background:#c0392b;" onclick="wystawPoszukiwanie(true)">🚨 WYSTAW NAKAZ ZATRZYMANIA</button>
+            <button class="submit-btn" style="background:#27ae60; margin-top:8px;" onclick="wystawPoszukiwanie(false)">✅ ZDEJMIJ POSZUKIWANIE</button>
+
+            <hr style="margin:15px 0; border:1px solid #ccc;">
+            <label>Czas aresztu (minuty):</label>
+            <input type="number" id="w_czas" placeholder="np. 15" value="15">
+            <button class="submit-btn" style="background:#2c3e50;" onclick="aresztujObywatela()">⛓️ ARESZTUJ OBYWATELA</button>
+        </div>
+
+        <!-- 5. ZGŁOSZENIA Z TELEFONU (997 / 999) -->
+        <div id="modal-dispatch" class="modal">
+            <div class="modal-header"><span>AKTYWNE ZGŁOSZENIA (997)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <div id="lista-zgloszen">Ładowanie zgłoszeń...</div>
+        </div>
+
+        <!-- 6. POZWOLENIA NA BROŃ -->
+        <div id="modal-bron" class="modal">
+            <div class="modal-header"><span>POZWOLENIA NA BROŃ</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <label>Wybierz obywatela:</label>
+            <select id="gun_select_obywatel"><option value="">-- Wybierz --</option></select>
+            <button class="submit-btn" style="background:#27ae60;" onclick="zmienPozwolenieNaBron(true)">✅ PRZYZNAJ POZWOLENIE</button>
+            <button class="submit-btn" style="background:#c0392b; margin-top:8px;" onclick="zmienPozwolenieNaBron(false)">❌ ODBIERZ POZWOLENIE</button>
+        </div>
+
+        <!-- 7. HISTORIA PATROLU -->
+        <div id="modal-historia" class="modal">
+            <div class="modal-header"><span>HISTORIA PATROLU</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <div id="lista-historii"></div>
+            <button class="submit-btn" style="background:#d9534f;" onclick="wyczyscHistorie()">WYCZYŚĆ HISTORIĘ</button>
+        </div>
+
+        <!-- 8. PANEL MODERATORA -->
+        <div id="modal-mod" class="modal">
+            <div class="modal-header"><span>🛡️ PANEL MODERATORA</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <div id="bb-mod-list"></div>
+        </div>
+    </div>
+
+    <!-- DOLNA CZĘŚĆ OBUDOWY -->
+    <div class="bb-bottom-bezel">
+        <div class="bb-hw-buttons">
+            <span class="bb-hw-btn" onclick="zamknijOkna()">⬅</span>
+            <span class="bb-hw-btn" onclick="zamknijOkna()">⊞</span>
+            <span class="bb-hw-btn" onclick="otworzOkno('legitymowanie')">🔍</span>
+        </div>
+        <div class="bb-grill"></div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCGJbpt3_AhHf1Sjs1CQCi0BgoSbeeJj-A",
+        authDomain: "telefon-rp.firebaseapp.com",
+        databaseURL: "https://telefon-rp-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "telefon-rp",
+        storageBucket: "telefon-rp.firebasestorage.app",
+        messagingSenderId: "435004215498",
+        appId: "1:435004215498:web:fe4f4fe25dc15e1b056433",
+        measurementId: "G-D46V1EX5G1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let globalCitizensCache = {};
+    let globalAccountsCache = {};
+    let globalVehiclesCache = {};
+    let globalClaimedNumbers = {};
+    let globalDispatches = {};
+    let globalCitizenHistory = {};
+
+    db.ref('citizens').on('value', snap => { globalCitizensCache = snap.val() || {}; odswiezSelecty(); });
+    db.ref('bank_accounts').on('value', snap => { globalAccountsCache = snap.val() || {}; });
+    db.ref('vehicles').on('value', snap => { globalVehiclesCache = snap.val() || {}; });
+    db.ref('claimed_numbers').on('value', snap => { globalClaimedNumbers = snap.val() || {}; if(document.getElementById('modal-mod').classList.contains('active')) renderBluebirdModList(); });
+    db.ref('citizen_history').on('value', snap => { globalCitizenHistory = snap.val() || {}; });
+    
+    db.ref('active_dispatches').on('value', snap => {
+        globalDispatches = snap.val() || {};
+        const pendingCount = Object.values(globalDispatches).filter(d => d.status === 'Oczekujące').length;
+        const badge = document.getElementById('dispatch-badge');
+        if (pendingCount > 0) {
+            badge.style.display = 'inline-block';
+            badge.innerText = pendingCount;
+        } else {
+            badge.style.display = 'none';
         }
+        if (document.getElementById('modal-dispatch').classList.contains('active')) renderDispatches();
+    });
 
-        function zaloguj() {
-            const nr = document.getElementById('login_nr').value.trim();
-            const pin = document.getElementById('login_pin').value.trim();
-            const blad = document.getElementById('login_blad');
+    const UZYTKOWNICY = {
+        "123455": { pin: "0000", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
+        "123456": { pin: "0000", nazwa: "Post. Nowak", jednostka: "PATROL-02" }
+    };
 
-            if (UZYTKOWNICY[nr] && UZYTKOWNICY[nr].pin === pin) {
-                const user = UZYTKOWNICY[nr];
-                aktualnyOficer = `${user.nazwa} [${nr}] (${user.jednostka})`;
-                document.getElementById('login-screen').style.display = 'none';
-                document.querySelector('.top-bar-2').innerText = `OFICER: ${user.nazwa} (${nr}) | ${user.jednostka}`;
-                document.getElementById('l_policjant').value = aktualnyOficer;
-                document.getElementById('m_policjant').value = aktualnyOficer;
+    const WEBHOOK_LEGITYMOWANIE = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
+    const WEBHOOK_MANDATY = "https://discord.com/api/webhooks/1486258468955488306/b2qIf2Ilqt3VHuszdvtOIRHmOQK6le_4TS98vnz_xOCiIKBzbHLNtlJvYyzKvB4tK7cc";
+    const WEBHOOK_STATUSY = "https://discord.com/api/webhooks/1486258771570200647/1ypvo2VGL9kQxBLZUS9z75WP-LeXUk2r0ea8QtLsQtnyk1Z1PTH-1k3mLc--SD7MiGFH";
+
+    let aktualnyOficer = "";
+    let aktualnieWybranyObywatel = "";
+
+    function zaloguj() {
+        const nr = document.getElementById('login_nr').value.trim();
+        const pin = document.getElementById('login_pin').value.trim();
+        if (UZYTKOWNICY[nr] && UZYTKOWNICY[nr].pin === pin) {
+            const u = UZYTKOWNICY[nr];
+            aktualnyOficer = `${u.nazwa} [${nr}] (${u.jednostka})`;
+            document.getElementById('login-screen').style.display = 'none';
+            document.querySelector('.top-bar-2').innerText = `OFICER: ${u.nazwa} (${nr}) | ${u.jednostka}`;
+        } else {
+            document.getElementById('login_blad').style.display = 'block';
+        }
+    }
+
+    function zagrajDzwonekAlarmu() {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            [0, 250, 500].forEach((delay, i) => {
+                setTimeout(() => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.frequency.value = i === 2 ? 1200 : 900;
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(); gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.2); osc.stop(audioCtx.currentTime + 0.2);
+                }, delay);
+            });
+        } catch(e) {}
+    }
+
+    let statusIndex = 0;
+    const statusy = [
+        { text: "STATUS PATROLU: WOLNY (10-8)", cls: "", nazwa: "🟢 WOLNY (10-8)" },
+        { text: "STATUS PATROLU: INTERWENCJA (10-6)", cls: "busy", nazwa: "🟡 INTERWENCJA (10-6)" },
+        { text: "STATUS PATROLU: PRZERWA (10-10)", cls: "break", nazwa: "🔴 PRZERWA (10-10)" }
+    ];
+    function zmienStatus() {
+        statusIndex = (statusIndex + 1) % statusy.length;
+        const s = statusy[statusIndex];
+        const btn = document.getElementById('statusBtn');
+        btn.innerText = s.text; btn.className = "status-btn " + s.cls;
+        if (aktualnyOficer) wyslijDoDiscorda(WEBHOOK_STATUSY, `🔄 **STATUS:** ${aktualnyOficer} -> **${s.nazwa}**`, false);
+    }
+
+    function wyslijPanike() {
+        if (aktualnyOficer && confirm("Wysłać alarm 10-99?")) {
+            wyslijDoDiscorda(WEBHOOK_STATUSY, `🚨🚨 **ALARM 10-99! PILNE WSPARCIE DLA:** ${aktualnyOficer} 🚨🚨`, false);
+            alert("Wysłano alarm 10-99!");
+        }
+    }
+
+    function odswiezSelecty() {
+        const opt = '<option value="">-- Wybierz --</option>' + Object.entries(globalCitizensCache).map(([num, c]) => `<option value="${num}">${c.name} (${num})</option>`).join('');
+        document.getElementById('m_wybrany_obywatel').innerHTML = opt;
+        document.getElementById('w_wybrany_obywatel').innerHTML = opt;
+        document.getElementById('gun_select_obywatel').innerHTML = opt;
+    }
+
+    function dodajWpisDoAktObywatela(tel, tresc) {
+        const czas = new Date().toLocaleDateString('pl-PL') + " " + new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        db.ref('citizen_history/' + tel).push({ czas, tresc, oficer: aktualnyOficer });
+    }
+
+    // 1. LEGITYMOWANIE + AKTA
+    function szukajWTelefonie() {
+        const q = document.getElementById('l_obywatel').value.trim().toLowerCase();
+        const div = document.getElementById('wyniki-wyszukiwania');
+        if (!q) { div.innerHTML = ''; return; }
+
+        const match = Object.entries(globalCitizensCache).filter(([num, c]) =>
+            c.name.toLowerCase().includes(q) || c.pesel.includes(q) || num.includes(q)
+        );
+        if (match.length === 0) { div.innerHTML = `<p style="font-size:12px; color:#c0392b;">Brak obywatela w bazie.</p>`; return; }
+
+        div.innerHTML = match.map(([num, c]) => {
+            const histObj = globalCitizenHistory[num] || {};
+            const histList = Object.values(histObj).reverse().slice(0, 5);
+            const histHtml = histList.length > 0
+                ? histList.map(h => `<div style="font-size:11px; border-top:1px solid #eee; padding:3px 0;"><b>${h.czas}:</b> ${h.tresc}</div>`).join('')
+                : `<div style="font-size:11px; color:#777;">Czyste konto (brak wpisów).</div>`;
+
+            return `
+                <div class="citizen-result-card" style="border-left: 4px solid ${c.wanted ? '#c0392b' : (c.suspended ? '#e67e22' : '#2ecc71')};">
+                    <b>${c.name}</b> (PESEL: ${c.pesel}) | Tel: ${num}<br>
+                    Dowód: ${c.suspended ? '🛑 Zastrzeżony' : '✅ Aktywny'} | Broń: ${c.gunPermit ? '✅ Posiada' : 'Brak'}
+                    ${c.wanted ? `<div class="wanted-banner">🚨 POSZUKIWANY: ${c.wantedReason || 'Nakaz zatrzymania'}</div>` : ''}
+                    <div style="margin-top:6px; background:#f9f9f9; padding:5px; border-radius:4px;">
+                        <b style="font-size:11px;">Ostatnie akta:</b>
+                        ${histHtml}
+                    </div>
+                    <button type="button" class="submit-btn" style="padding:5px; margin-top:6px; font-size:11px; background:#3a6bc4;" onclick="wybierzObywatela('${c.name}', '${c.pesel}')">Wybierz do raportu</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function wybierzObywatela(name, pesel) {
+        aktualnieWybranyObywatel = `${name} (PESEL: ${pesel})`;
+        document.getElementById('l_obywatel').value = aktualnieWybranyObywatel;
+    }
+
+    function wyslijLegitymowanie() {
+        const o = aktualnieWybranyObywatel || document.getElementById('l_obywatel').value;
+        const notatki = document.getElementById('l_notatki').value;
+        if (!o) return alert("Wpisz obywatela!");
+        zapiszHistorie('LEGITYMOWANIE', `${o} | ${notatki}`);
+        wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, `🔍 **LEGITYMOWANIE:** ${aktualnyOficer} | Obywatel: **${o}** | Notatki: ${notatki}`, true);
+    }
+
+    // 2. CEPiK
+    function szukajPojazdu() {
+        const q = document.getElementById('v_szukaj_tablica').value.trim().toUpperCase();
+        const div = document.getElementById('wyniki-pojazdow');
+        if (!q) { div.innerHTML = ''; return; }
+        let found = [];
+        Object.entries(globalVehiclesCache).forEach(([tel, vehs]) => {
+            Object.entries(vehs).forEach(([plate, data]) => {
+                if (plate.includes(q) || data.brand.toUpperCase().includes(q)) found.push({ ...data, tel });
+            });
+        });
+        if (found.length === 0) { div.innerHTML = `<p style="font-size:12px; color:#c0392b;">Brak pojazdu w bazie CEPiK.</p>`; return; }
+        div.innerHTML = found.map(v => `
+            <div class="citizen-result-card" style="border-left:4px solid #16a085;">
+                <b>Model:</b> ${v.brand} | <b>Tablica:</b> ${v.plate}<br>
+                <b>Właściciel:</b> ${globalCitizensCache[v.tel] ? globalCitizensCache[v.tel].name : 'Nieznany'} (${v.tel})
+            </div>
+        `).join('');
+    }
+
+    // 3. MANDATY
+    function wybierzZtaryfikatora() {
+        const val = document.getElementById('m_taryfikator').value;
+        if (!val) return;
+        const [powod, kwota] = val.split('|');
+        document.getElementById('m_powod').value = powod;
+        document.getElementById('m_kwota').value = kwota;
+    }
+
+    function wyslijMandat() {
+        const tel = document.getElementById('m_wybrany_obywatel').value;
+        const powod = document.getElementById('m_powod').value;
+        const kwota = parseFloat(document.getElementById('m_kwota').value);
+        if (!tel || !powod || isNaN(kwota) || kwota <= 0) return alert("Uzupełnij dane mandatu!");
+
+        const cit = globalCitizensCache[tel];
+        let acc = globalAccountsCache[tel] || { balance: 0, history: [] };
+        acc.balance -= kwota;
+        acc.history = acc.history || [];
+        acc.history.push({ title: `Mandat: ${powod}`, amount: kwota, type: 'out', time: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) });
+
+        db.ref('bank_accounts/' + tel).set(acc).then(() => {
+            dodajWpisDoAktObywatela(tel, `Mandat ${kwota} PLN za: ${powod}`);
+            zapiszHistorie('MANDAT', `${cit.name} - ${kwota} PLN (${powod})`);
+            wyslijDoDiscorda(WEBHOOK_MANDATY, `🚨 **MANDAT:** ${aktualnyOficer} | Obywatel: **${cit.name}** | Kwota: **${kwota} PLN** | Powód: ${powod}`, true);
+        });
+    }
+
+    // 4. POSZUKIWANIA I ARESZTOWANIE
+    function wystawPoszukiwanie(status) {
+        const tel = document.getElementById('w_wybrany_obywatel').value;
+        const powod = document.getElementById('w_powod').value.trim();
+        if (!tel) return alert("Wybierz obywatela!");
+        if (status && !powod) return alert("Podaj powód poszukiwania!");
+
+        const cit = globalCitizensCache[tel];
+        db.ref('citizens/' + tel).update({ wanted: status, wantedReason: status ? powod : '' }).then(() => {
+            if (status) {
+                dodajWpisDoAktObywatela(tel, `Wystawiono nakaz zatrzymania: ${powod}`);
+                zapiszHistorie('NAKAZ', `Poszukiwany: ${cit.name} (${powod})`);
+                wyslijDoDiscorda(WEBHOOK_STATUSY, `🚨 **NAKAZ ZATRZYMANIA:** ${aktualnyOficer} wystawił poszukiwanie za **${cit.name}** | Powód: ${powod}`, true);
             } else {
-                blad.style.display = 'block';
-            }
-        }
-
-        function otworzPanelModeratora() {
-            const pin = prompt("🛡️ Podaj PIN Moderatora dla Bluebird:");
-            if (pin === "POLICJA997") {
-                renderBluebirdModList();
-                otworzOkno('mod');
-            } else if (pin !== null) {
-                alert("Błędny PIN!");
-            }
-        }
-
-        function renderBluebirdModList() {
-            const list = document.getElementById('bb-mod-list');
-            const keys = Object.keys(globalClaimedNumbers);
-            if (keys.length === 0) {
-                list.innerHTML = `<p style="text-align:center;">Brak zajętych numerów w bazie.</p>`;
-                return;
-            }
-            list.innerHTML = keys.map(num => {
-                const cit = globalCitizensCache[num];
-                const acc = globalAccountsCache[num];
-                return `
-                    <div style="background:white; border:1px solid #ccc; padding:10px; margin-bottom:8px; border-radius:6px;">
-                        <div><b>Tel: ${num}</b> | Obywatel: <b>${cit ? cit.name : 'Brak'}</b></div>
-                        <div style="font-size:12px; color:#555; margin:4px 0;">Saldo konta: <b>${acc ? acc.balance.toFixed(2) : '0'} PLN</b></div>
-                        <div style="display:flex; gap:6px;">
-                            <button class="submit-btn" style="padding:4px; margin:0; font-size:11px; background:#3a6bc4;" onclick="bbModEditCitizen('${num}')">Edytuj dowód</button>
-                            <button class="submit-btn" style="padding:4px; margin:0; font-size:11px; background:#e67e22;" onclick="bbModEditBalance('${num}')">Zmień saldo</button>
-                            <button class="submit-btn" style="padding:4px; margin:0; font-size:11px; background:#d9534f;" onclick="bbModDeleteNumber('${num}')">Usuń</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function bbModDeleteNumber(num) {
-            if (!confirm(`Zwolnić numer ${num}?`)) return;
-            db.ref('claimed_numbers/' + num).remove();
-            db.ref('citizens/' + num).remove();
-            db.ref('bank_accounts/' + num).remove();
-            db.ref('vehicles/' + num).remove();
-        }
-
-        function bbModEditCitizen(num) {
-            const cit = globalCitizensCache[num];
-            if (!cit) { alert("Brak dowodu dla tego numeru!"); return; }
-            const newName = prompt("Nowe imię i nazwisko:", cit.name);
-            const newPesel = prompt("Nowy PESEL:", cit.pesel);
-            if (newName && newPesel) {
-                db.ref('citizens/' + num).update({ name: newName, pesel: newPesel });
-                alert("Zaktualizowano dowód!");
-            }
-        }
-
-        function bbModEditBalance(num) {
-            const acc = globalAccountsCache[num] || { balance: 0, history: [] };
-            const newBal = prompt(`Nowe saldo dla ${num} (obecnie ${acc.balance} PLN):`);
-            if (newBal !== null && !isNaN(parseFloat(newBal))) {
-                acc.balance = parseFloat(newBal);
-                acc.history.push({ title: "Korekta Moderatora", amount: acc.balance, type: "in", time: new Date().toLocaleTimeString() });
-                db.ref('bank_accounts/' + num).set(acc);
-                alert("Zmieniono saldo!");
-            }
-        }
-
-        let statusIndex = 0;
-        const statusy = [
-            { text: "STATUS PATROLU: WOLNY (10-8)", cls: "", nazwaStatusu: "🟢 WOLNY (10-8)" },
-            { text: "STATUS PATROLU: INTERWENCJA (10-6)", cls: "busy", nazwaStatusu: "🟡 INTERWENCJA (10-6)" },
-            { text: "STATUS PATROLU: PRZERWA (10-10)", cls: "break", nazwaStatusu: "🔴 PRZERWA (10-10)" }
-        ];
-
-        function zmienStatus() {
-            statusIndex = (statusIndex + 1) % statusy.length;
-            const btn = document.getElementById('statusBtn');
-            const s = statusy[statusIndex];
-            btn.innerText = s.text;
-            btn.className = "status-btn " + s.cls;
-            if (aktualnyOficer) wyslijDoDiscordaTych(WEBHOOK_STATUSY, `🔄 **STATUS:** ${aktualnyOficer} -> **${s.nazwaStatusu}**`, false);
-        }
-
-        function wyslijPanike() {
-            if (!aktualnyOficer) return;
-            if (confirm("Wysłać alarm 10-99?")) {
-                wyslijDoDiscordaTych(WEBHOOK_PANIKA, `🚨🚨 **ALARM 10-99! WSPARCIE DLA:** ${aktualnyOficer} 🚨🚨`, false);
-                alert("Wysłano alarm!");
-            }
-        }
-
-        function odswiezSelecty() {
-            const opt = '<option value="">-- Wybierz --</option>' + Object.entries(globalCitizensCache).map(([num, c]) => `<option value="${num}">${c.name} (${num})</option>`).join('');
-            const selMandat = document.getElementById('m_wybrany_obywatel');
-            const selGun = document.getElementById('gun_select_obywatel');
-            if (selMandat) selMandat.innerHTML = opt;
-            if (selGun) selGun.innerHTML = opt;
-        }
-
-        function otworzOkno(nazwa) {
-            zamknijOkna();
-            if (nazwa === 'historia') pokazHistorie();
-            document.getElementById('modal-' + nazwa).classList.add('active');
-        }
-
-        function zamknijOkna() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
-
-        function wyslijDoDiscorda(webhookUrl, tekst) { wyslijDoDiscordaTych(webhookUrl, tekst, true); }
-
-        function wyslijDoDiscordaTych(webhookUrl, tekst, zamknij) {
-            if (webhookUrl.includes("TUTAJ_LINK")) { if(zamknij) zamknijOkna(); return; }
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: tekst })
-            }).then(() => { if(zamknij) { alert('Wysłano na Discord!'); zamknijOkna(); } }).catch(err => console.error(err));
-        }
-
-        // 1. LEGITYMOWANIE
-        function szukajWTelefonie() {
-            let query = document.getElementById('l_obywatel').value.trim().toLowerCase();
-            let wynDiv = document.getElementById('wyniki-wyszukiwania');
-            if (!query) { wynDiv.innerHTML = ''; aktualnieWybranyObywatel = ""; return; }
-
-            let matches = Object.entries(globalCitizensCache).filter(([num, c]) => 
-                c.pesel.toLowerCase().includes(query) || c.name.toLowerCase().includes(query) || (c.discord && c.discord.toLowerCase().includes(query)) || num.includes(query)
-            );
-
-            if (matches.length === 0) {
-                wynDiv.innerHTML = `<p style="font-size:12px; color:#d9534f; margin-top:5px;">Brak obywatela w bazie.</p>`;
-                return;
-            }
-
-            wynDiv.innerHTML = matches.map(([num, c]) => `
-                <div class="citizen-result-card" style="border-left: 4px solid ${c.suspended ? '#e74c3c' : '#2ecc71'};">
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>${c.name}</b>
-                        <span style="font-size:11px; color:${c.suspended ? '#e74c3c' : '#2ecc71'}; font-weight:bold;">${c.suspended ? '🛑 Zastrzeżony' : '✅ Aktywny'}</span>
-                    </div>
-                    <div style="font-size:12px; color:#555;">PESEL: ${c.pesel} | Tel: ${num} | Broń: ${c.gunPermit ? '✅ Posiada' : 'Brak'}</div>
-                    <button type="button" class="submit-btn" style="padding:6px; margin-top:8px; font-size:12px; background:#3a6bc4;" onclick="wybierzObywatelaDoRaportu('${c.name}', '${c.pesel}')">Wybierz do raportu</button>
-                </div>
-            `).join('');
-        }
-
-        function wybierzObywatelaDoRaportu(name, pesel) {
-            document.getElementById('l_obywatel').value = `${name} (PESEL: ${pesel})`;
-            aktualnieWybranyObywatel = `${name} (PESEL: ${pesel})`;
-            alert(`Wybrano obywatela: ${name}`);
-        }
-
-        function wyslijLegitymowanie() {
-            let o = aktualnieWybranyObywatel || document.getElementById('l_obywatel').value;
-            let notatki = document.getElementById('l_notatki').value;
-            if(!o) { alert('Wpisz obywatela!'); return; }
-            zapiszHistorie('LEGITYMOWANIE', `${o} - ${notatki}`);
-            wyslijDoDiscorda(WEBHOOK_LEGITYMOWANIE, `🔍 **LEGITYMOWANIE:** ${aktualnyOficer} | Obywatel: **${o}** | Notatki: ${notatki}`);
-        }
-
-        // 2. KONTROLA POJAZDÓW (CEPiK)
-        function szukajPojazdu() {
-            const query = document.getElementById('v_szukaj_tablica').value.trim().toUpperCase();
-            const resDiv = document.getElementById('wyniki-pojazdow');
-            if (!query) { resDiv.innerHTML = ''; return; }
-
-            let found = [];
-            Object.entries(globalVehiclesCache).forEach(([tel, vehicles]) => {
-                Object.entries(vehicles).forEach(([plate, data]) => {
-                    if (plate.includes(query) || data.brand.toUpperCase().includes(query)) {
-                        found.push({ ...data, tel });
-                    }
-                });
-            });
-
-            if (found.length === 0) { resDiv.innerHTML = `<p style="font-size:12px; color:#c0392b;">Brak pojazdu w bazie CEPiK.</p>`; return; }
-            resDiv.innerHTML = found.map(v => `
-                <div class="citizen-result-card" style="border-left:4px solid #16a085;">
-                    <div><b>Model:</b> ${v.brand}</div>
-                    <div><b>Tablica:</b> ${v.plate}</div>
-                    <div><b>Właściciel (Tel):</b> ${v.tel} (${globalCitizensCache[v.tel] ? globalCitizensCache[v.tel].name : 'Nieznany'})</div>
-                </div>
-            `).join('');
-        }
-
-        // 3. MANDATY
-        function wybierzZtaryfikatora() {
-            let val = document.getElementById('m_taryfikator').value;
-            if(!val) return;
-            let parts = val.split('|');
-            document.getElementById('m_powod').value = parts[0];
-            document.getElementById('m_kwota').value = parts[1];
-        }
-
-        function wyslijMandat() {
-            const tel = document.getElementById('m_wybrany_obywatel').value;
-            const powod = document.getElementById('m_powod').value;
-            const kwota = parseFloat(document.getElementById('m_kwota').value);
-
-            if (!tel || !powod || isNaN(kwota) || kwota <= 0) {
-                alert("Wybierz obywatela, podaj powód oraz poprawną kwotę mandatu!");
-                return;
-            }
-
-            const citizen = globalCitizensCache[tel];
-            let account = globalAccountsCache[tel] || { balance: 0, history: [] };
-
-            account.balance -= kwota;
-            account.history.push({
-                title: `Mandat: ${powod} (${aktualnyOficer.split(' [')[0]})`,
-                amount: kwota,
-                type: 'out',
-                time: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })
-            });
-
-            db.ref('bank_accounts/' + tel).set(account).then(() => {
-                zapiszHistorie('MANDAT', `${citizen.name} - ${kwota} PLN (${powod}) - Pobrano z konta`);
-                wyslijDoDiscorda(WEBHOOK_MANDATY, `🚨 **MANDAT WYSTAWIONY:** ${aktualnyOficer} | Obywatel: **${citizen.name}** | Powód: ${powod} | Kwota: **${kwota} PLN** (Pobrano automatycznie z konta bankowego)`);
-                document.getElementById('m_powod').value = "";
-                document.getElementById('m_kwota').value = "";
+                dodajWpisDoAktObywatela(tel, `Zdjęto status poszukiwanego`);
+                alert("Zdjęto status poszukiwanego!");
                 zamknijOkna();
-            });
-        }
+            }
+        });
+    }
 
-        // 4. POZWOLENIA NA BROŃ
-        function zmienPozwolenieNaBron(status) {
-            const tel = document.getElementById('gun_select_obywatel').value;
-            if (!tel) return alert("Wybierz obywatela z listy!");
-            db.ref('citizens/' + tel + '/gunPermit').set(status).then(() => {
-                alert(status ? "Przyznano pozwolenie na broń!" : "Odebrano pozwolenie na broń!");
-                zamknijOkna();
-            });
-        }
+    function aresztujObywatela() {
+        const tel = document.getElementById('w_wybrany_obywatel').value;
+        const powod = document.getElementById('w_powod').value.trim();
+        const czas = document.getElementById('w_czas').value.trim();
+        if (!tel || !powod || !czas) return alert("Wybierz obywatela, podaj powód i czas!");
 
-        // 5. DISPATCH
-        function przyjmijZgloszenie() {
-            let lok = document.getElementById('d_lokalizacja').value;
-            let opis = document.getElementById('d_opis').value;
-            if(!lok) { alert('Wpisz lokalizację!'); return; }
-            zapiszHistorie('DISPATCH', `Miejsce: <b>${lok}</b> | ${opis}`);
-            wyslijDoDiscorda(WEBHOOK_DISPATCH, `📞 **ZGŁOSZENIE:** ${aktualnyOficer} jedzie do: **${lok}** | ${opis}`);
+        const cit = globalCitizensCache[tel];
+        db.ref('citizens/' + tel).update({ wanted: false, wantedReason: '' }).then(() => {
+            dodajWpisDoAktObywatela(tel, `Aresztowanie (${czas} min) za: ${powod}`);
+            zapiszHistorie('ARESZT', `${cit.name} - ${czas} min (${powod})`);
+            wyslijDoDiscorda(WEBHOOK_MANDATY, `⛓️ **ARESZTOWANIE:** ${aktualnyOficer} aresztował **${cit.name}** na **${czas} min** | Powód: ${powod}`, true);
+        });
+    }
+
+    // 5. ZGŁOSZENIA Z TELEFONU
+    function renderDispatches() {
+        const div = document.getElementById('lista-zgloszen');
+        const entries = Object.entries(globalDispatches).reverse();
+        if (entries.length === 0) { div.innerHTML = `<p style="text-align:center; font-size:12px;">Brak zgłoszeń.</p>`; return; }
+        div.innerHTML = entries.map(([id, d]) => `
+            <div class="citizen-result-card" style="border-left: 4px solid ${d.status === 'Oczekujące' ? '#e74c3c' : '#2ecc71'};">
+                <div><b>Tel: ${d.telefon}</b> | Godz: ${d.czas} | Status: <b>${d.status}</b></div>
+                <div style="margin:5px 0; font-size:12px;">${d.lokalizacja}</div>
+                <div style="display:flex; gap:5px;">
+                    ${d.status === 'Oczekujące' ? `<button class="submit-btn" style="padding:5px; margin:0; font-size:11px;" onclick="akceptujZgloszenie('${id}')">🚨 PRZYJMIJ</button>` : ''}
+                    <button class="submit-btn" style="padding:5px; margin:0; font-size:11px; background:#7f8c8d;" onclick="usunZgloszenie('${id}')">USUŃ</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    function akceptujZgloszenie(id) {
+        db.ref('active_dispatches/' + id + '/status').set(`Przyjęte (${aktualnyOficer.split(' [')[0]})`);
+        zagrajDzwonekAlarmu();
+    }
+    function usunZgloszenie(id) { db.ref('active_dispatches/' + id).remove(); }
+
+    // 6. BROŃ
+    function zmienPozwolenieNaBron(status) {
+        const tel = document.getElementById('gun_select_obywatel').value;
+        if (!tel) return alert("Wybierz obywatela!");
+        db.ref('citizens/' + tel + '/gunPermit').set(status).then(() => {
+            dodajWpisDoAktObywatela(tel, status ? 'Przyznano pozwolenie na broń' : 'Odebrano pozwolenie na broń');
+            alert(status ? "Przyznano pozwolenie!" : "Odebrano pozwolenie!");
             zamknijOkna();
-        }
+        });
+    }
 
-        // HISTORIA
-        function zapiszHistorie(typ, opis) {
-            let hist = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
-            let czas = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-            hist.unshift({ czas, typ, opis });
-            if (hist.length > 15) hist.pop();
-            localStorage.setItem('bluebird_historia', JSON.stringify(hist));
+    // 7. PANEL MODERATORA
+    function otworzPanelModeratora() {
+        const pin = prompt("🛡️ Podaj PIN Moderatora:");
+        if (pin === "POLICJA997") { renderBluebirdModList(); otworzOkno('mod'); }
+        else if (pin !== null) alert("Błędny PIN!");
+    }
+    function renderBluebirdModList() {
+        const list = document.getElementById('bb-mod-list');
+        const keys = Object.keys(globalClaimedNumbers);
+        if (keys.length === 0) { list.innerHTML = `<p style="text-align:center;">Brak danych.</p>`; return; }
+        list.innerHTML = keys.map(num => `
+            <div class="citizen-result-card">
+                <div><b>Tel: ${num}</b> | ${globalCitizensCache[num] ? globalCitizensCache[num].name : 'Brak'}</div>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <button class="submit-btn" style="padding:4px; margin:0; font-size:11px; background:#e67e22;" onclick="bbModEditBalance('${num}')">Zmień saldo</button>
+                    <button class="submit-btn" style="padding:4px; margin:0; font-size:11px; background:#d9534f;" onclick="bbModDelete('${num}')">Usuń</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    function bbModDelete(num) { if (confirm(`Usunąć ${num}?`)) { db.ref('claimed_numbers/'+num).remove(); db.ref('citizens/'+num).remove(); db.ref('bank_accounts/'+num).remove(); db.ref('vehicles/'+num).remove(); } }
+    function bbModEditBalance(num) {
+        const b = prompt("Nowe saldo:", globalAccountsCache[num] ? globalAccountsCache[num].balance : 0);
+        if (b !== null && !isNaN(parseFloat(b))) {
+            let acc = globalAccountsCache[num] || { balance: 0, history: [] };
+            acc.balance = parseFloat(b); db.ref('bank_accounts/'+num).set(acc);
         }
+    }
 
-        function pokazHistorie() {
-            let kont = document.getElementById('lista-historii');
-            let hist = JSON.parse(localStorage.getItem('bluebird_historia') || '[]');
-            if (hist.length === 0) { kont.innerHTML = '<p style="text-align:center;">Brak historii interwencji.</p>'; return; }
-            kont.innerHTML = hist.map(h => `<div class="history-item"><div class="history-time">${h.czas} | <b>${h.typ}</b></div><div>${h.opis}</div></div>`).join('');
-        }
+    // POMOCNICZE
+    function otworzOkno(n) {
+        zamknijOkna();
+        if (n === 'historia') pokazHistorie();
+        if (n === 'dispatch') renderDispatches();
+        document.getElementById('modal-' + n).classList.add('active');
+    }
+    function zamknijOkna() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('active')); }
 
-        function wyczyscHistorie() { 
-            localStorage.removeItem('bluebird_historia'); 
-            pokazHistorie(); 
-        }
-    </script>
+    function wyslijDoDiscorda(url, tekst, zamknij) {
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: tekst }) })
+        .then(() => { if (zamknij) { alert('Wysłano!'); zamknijOkna(); } }).catch(e => console.error(e));
+    }
+
+    function zapiszHistorie(typ, opis) {
+        let h = JSON.parse(localStorage.getItem('bb_hist') || '[]');
+        h.unshift({ czas: new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }), typ, opis });
+        if (h.length > 20) h.pop();
+        localStorage.setItem('bb_hist', JSON.stringify(h));
+    }
+    function pokazHistorie() {
+        let h = JSON.parse(localStorage.getItem('bb_hist') || '[]');
+        document.getElementById('lista-historii').innerHTML = h.length ? h.map(x => `<div class="history-item"><b>${x.czas} | ${x.typ}</b><br>${x.opis}</div>`).join('') : '<p style="text-align:center;">Brak wpisów.</p>';
+    }
+    function wyczyscHistorie() { localStorage.removeItem('bb_hist'); pokazHistorie(); }
+</script>
 </body>
 </html>
