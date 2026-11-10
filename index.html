@@ -27,7 +27,6 @@
             display: flex; flex-direction: column; position: relative;
         }
 
-        /* Wzmocnione narożniki pancerne */
         .bluebird-device::before {
             content: ""; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
             border-radius: 40px; border: 3px solid #2b2f35; pointer-events: none;
@@ -114,7 +113,6 @@
 
         .bottom-bar { display: flex; justify-content: center; align-items: center; position: relative; padding: 8px 6px; }
         .btn-small { background-color: #3a6bc4; color: white; border: none; padding: 8px 16px; font-weight: bold; font-size: 11px; cursor: pointer; border-radius: 2px; }
-        .btn-info { position: absolute; right: 6px; padding: 8px 12px; }
 
         /* MODALE WEWNĄTRZ EKRANU */
         .modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f2f2f2; z-index: 100; padding: 12px; overflow-y: auto; }
@@ -168,7 +166,7 @@
                 <button class="tile bg-red" onclick="otworzOkno('poszukiwania')">POSZUKIWANIA<br>I ARESZT</button>
 
                 <button class="tile bg-orange" onclick="otworzOkno('dispatch')">
-                    ZGŁOSZENIA<br>(997 / 999)
+                    ZGŁOSZENIA<br>(112 / 997)
                     <span id="dispatch-badge" class="badge" style="display:none;">0</span>
                 </button>
                 <button class="tile bg-blue" onclick="otworzOkno('bron')">POZWOLENIA<br>NA BROŃ</button>
@@ -178,7 +176,7 @@
             </div>
 
             <div class="bottom-bar">
-                <button class="btn-small" onclick="alert('Bluebird EF500R MDT v4.0')">SYSTEM INFO</button>
+                <button class="btn-small" onclick="alert('Bluebird EF500R MDT v4.1')">SYSTEM INFO</button>
             </div>
         </div>
 
@@ -237,9 +235,9 @@
             <button class="submit-btn" style="background:#2c3e50;" onclick="aresztujObywatela()">⛓️ ARESZTUJ OBYWATELA</button>
         </div>
 
-        <!-- 5. ZGŁOSZENIA Z TELEFONU (997 / 999) -->
+        <!-- 5. ZGŁOSZENIA Z TELEFONU (112 / 997) -->
         <div id="modal-dispatch" class="modal">
-            <div class="modal-header"><span>AKTYWNE ZGŁOSZENIA (997)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
+            <div class="modal-header"><span>AKTYWNE ZGŁOSZENIA (112)</span><button class="close-btn" onclick="zamknijOkna()">X</button></div>
             <div id="lista-zgloszen">Ładowanie zgłoszeń...</div>
         </div>
 
@@ -319,7 +317,7 @@
     });
 
     const UZYTKOWNICY = {
-        "123455": { pin: "0000", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
+        "1304720": { pin: "123456", nazwa: "Sierż. Kowalski", jednostka: "PATROL-01" },
         "123456": { pin: "0000", nazwa: "Post. Nowak", jednostka: "PATROL-02" }
     };
 
@@ -520,26 +518,64 @@
         });
     }
 
-    // 5. ZGŁOSZENIA Z TELEFONU
+    // 5. ZGŁOSZENIA Z TELEFONU + W DRODZE + NOTATKI NA DC
     function renderDispatches() {
         const div = document.getElementById('lista-zgloszen');
         const entries = Object.entries(globalDispatches).reverse();
         if (entries.length === 0) { div.innerHTML = `<p style="text-align:center; font-size:12px;">Brak zgłoszeń.</p>`; return; }
-        div.innerHTML = entries.map(([id, d]) => `
-            <div class="citizen-result-card" style="border-left: 4px solid ${d.status === 'Oczekujące' ? '#e74c3c' : '#2ecc71'};">
-                <div><b>Tel: ${d.telefon}</b> | Godz: ${d.czas} | Status: <b>${d.status}</b></div>
-                <div style="margin:5px 0; font-size:12px;">${d.lokalizacja}</div>
-                <div style="display:flex; gap:5px;">
-                    ${d.status === 'Oczekujące' ? `<button class="submit-btn" style="padding:5px; margin:0; font-size:11px;" onclick="akceptujZgloszenie('${id}')">🚨 PRZYJMIJ</button>` : ''}
-                    <button class="submit-btn" style="padding:5px; margin:0; font-size:11px; background:#7f8c8d;" onclick="usunZgloszenie('${id}')">USUŃ</button>
+        div.innerHTML = entries.map(([id, d]) => {
+            const isPending = d.status === 'Oczekujące';
+            const notesHtml = d.notatki ? `<div style="background:#eef2f5; padding:5px; border-radius:4px; font-size:11px; margin-top:5px;"><b>Notatki:</b><br>${d.notatki.replace(/\n/g, '<br>')}</div>` : '';
+            return `
+                <div class="citizen-result-card" style="border-left: 4px solid ${isPending ? '#e74c3c' : '#f39c12'};">
+                    <div><b>${d.sluzba || '112'}</b> | Tel: <b>${d.telefon}</b> | ${d.czas}</div>
+                    <div style="font-size:11px; color:#555;">Status: <b style="color:${isPending ? '#c0392b' : '#d35400'};">${d.status}</b></div>
+                    <div style="margin:5px 0; font-size:12px;">${d.lokalizacja}</div>
+                    ${notesHtml}
+                    <div style="margin-top:8px; display:flex; flex-direction:column; gap:5px;">
+                        <div style="display:flex; gap:5px;">
+                            ${isPending ? `<button class="submit-btn" style="padding:6px; margin:0; font-size:11px; background:#e67e22;" onclick="akceptujZgloszenie('${id}')">🚓 AKCEPTUJ (W DRODZE)</button>` : ''}
+                            <button class="submit-btn" style="padding:6px; margin:0; font-size:11px; background:#7f8c8d;" onclick="usunZgloszenie('${id}')">ZAKOŃCZ / USUŃ</button>
+                        </div>
+                        <div style="display:flex; gap:5px; margin-top:4px;">
+                            <input type="text" id="note-${id}" placeholder="Wpisz notatkę z interwencji..." style="margin:0; padding:6px; font-size:11px; flex:1;">
+                            <button class="submit-btn" style="padding:6px 10px; margin:0; font-size:11px; width:auto; background:#3a6bc4;" onclick="wyslijNotatkeInterwencji('${id}')">📝 NA DC</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
+
     function akceptujZgloszenie(id) {
-        db.ref('active_dispatches/' + id + '/status').set(`Przyjęte (${aktualnyOficer.split(' [')[0]})`);
+        const oficer = aktualnyOficer ? aktualnyOficer.split(' [')[0] : 'Patrol';
+        db.ref('active_dispatches/' + id + '/status').set(`W drodze (${oficer})`);
         zagrajDzwonekAlarmu();
+        const d = globalDispatches[id];
+        if (d) {
+            wyslijDoDiscorda(WEBHOOK_STATUSY, `🚓 **INTERWENCJA PRZYJĘTA (W DRODZE):** ${aktualnyOficer} jedzie na zgłoszenie: **${d.lokalizacja}** (Tel: ${d.telefon})`, false);
+        }
     }
+
+    function wyslijNotatkeInterwencji(id) {
+        const input = document.getElementById('note-' + id);
+        const tekst = input.value.trim();
+        if (!tekst) return alert("Wpisz treść notatki!");
+        const d = globalDispatches[id];
+        if (!d) return;
+
+        const czas = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        const oficerShort = aktualnyOficer ? aktualnyOficer.split(' [')[0] : 'Patrol';
+        const nowyWpis = `[${czas}] ${oficerShort}: ${tekst}`;
+        const obecneNotatki = d.notatki ? d.notatki + "\n" + nowyWpis : nowyWpis;
+
+        db.ref('active_dispatches/' + id + '/notatki').set(obecneNotatki);
+        zapiszHistorie('NOTATKA 112', `${d.lokalizacja} -> ${tekst}`);
+        wyslijDoDiscorda(WEBHOOK_STATUSY, `📝 **NOTATKA Z INTERWENCJI:**\n👮 **Oficer:** ${aktualnyOficer}\n📍 **Zgłoszenie:** ${d.lokalizacja} (Tel: ${d.telefon})\n💬 **Notatka:** ${tekst}`, false);
+        input.value = "";
+        alert("Notatka wysłana na Discorda!");
+    }
+
     function usunZgloszenie(id) { db.ref('active_dispatches/' + id).remove(); }
 
     // 6. BROŃ
