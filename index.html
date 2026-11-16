@@ -73,7 +73,7 @@
         .view-section { display: none; flex: 1; flex-direction: column; }
         .view-section.active { display: flex; }
 
-        /* KAFELKOWE MENU GŁÓWNE */
+        /* KAFELKOWE MENU GŁÓWNE ZGODNE ZE ZDJĘCIEM */
         .bb-grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
         .bb-tile {
             background: var(--bb-tile); border: 1px solid #90a4ae; border-radius: 4px;
@@ -82,7 +82,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.1s; text-transform: uppercase;
         }
         .bb-tile:active { background: var(--bb-tile-active); transform: scale(0.98); }
-        .bb-tile.full { grid-column: span 2; padding: 16px; }
+        .bb-tile.full { grid-column: span 2; padding: 14px; font-size: 11px; color: #455a64; flex-direction: column; gap: 2px; }
 
         /* WYNIKI I KARTOTEKA KSIP */
         .bb-input { width: 100%; padding: 10px; border: 1px solid #b0bec5; border-radius: 4px; font-size: 14px; margin-bottom: 8px; outline: none; background: #fff; }
@@ -111,7 +111,10 @@
 
         /* DOLNY PASEK SYSTEMOWY */
         .bb-bottom-nav {
-            background: #263238; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; color: #cfd8dc; font-size: 11px; border-top: 1px solid #37474f;
+            background: #cfd8dc; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; color: #37474f; font-size: 11px; border-top: 1px solid #b0bec5;
+        }
+        .btn-opcje {
+            background: var(--bb-tile); border: 1px solid #90a4ae; padding: 8px; text-align: center; font-weight: bold; font-size: 12px; border-radius: 4px; cursor: pointer; margin-top: auto;
         }
     </style>
 </head>
@@ -148,16 +151,23 @@
     <!-- GŁÓWNA ZAWARTOŚĆ -->
     <div class="bb-screen-content">
         
-        <!-- WIDOK 1: STRONA GŁÓWNA (MENU KAFELKOWE) -->
+        <!-- WIDOK 1: STRONA GŁÓWNA (MENU KAFELKOWE JAK NA ZDJĘCIU) -->
         <div id="view-home" class="view-section active">
             <div class="bb-grid-menu">
                 <div class="bb-tile" onclick="openView('legitymowanie')">LEGITYMOWANIA</div>
                 <div class="bb-tile" onclick="openView('interwencja')">INTERWENCJA WŁASNA</div>
-                <div class="bb-tile" onclick="openView('komunikaty')">KOMUNIKATY</div>
-                <div class="bb-tile" onclick="openView('zdarzenia')">ZDARZENIA (112)</div>
-                <div class="bb-tile full" style="background:#b0bec5;" onclick="alert('Brak aktywnych meldunków.')">MELDUNKI <small style="display:block; font-size:10px; color:#455a64;">(tylko w interwencji)</small></div>
-                <div class="bb-tile full" style="background:#b0bec5;" onclick="alert('Brak dyspozycji.')">DYSPOYCJE <small style="display:block; font-size:10px; color:#455a64;">(tylko w interwencji)</small></div>
+                <div class="bb-tile" onclick="openView('cepik')">CEPiK</div>
+                <div class="bb-tile" onclick="openView('zdarzenia')">ZDARZENIA</div>
+                <div class="bb-tile full" onclick="alert('Funkcja dostępna tylko w interwencji.')">
+                    <span>(tylko w interwencji)</span>
+                    <b>MELDUNKI</b>
+                </div>
+                <div class="bb-tile full" onclick="alert('Funkcja dostępna tylko w interwencji.')">
+                    <span>(tylko w interwencji)</span>
+                    <b>DYSPOZYCJE</b>
+                </div>
             </div>
+            <div class="btn-opcje" onclick="alert('Panel opcji systemowych Bluebird.')" style="margin-top: 12px;">OPCJE</div>
         </div>
 
         <!-- WIDOK 2: LEGITYMOWANIE / WYSZUKIWANIE PO PESELU -->
@@ -172,12 +182,12 @@
             <div id="dispatches-container" style="overflow-y:auto; flex:1;">Ładowanie zgłoszeń...</div>
         </div>
 
-        <!-- WIDOK 4: KOMUNIKATY / CEPiK & POSZUKIWANE -->
-        <div id="view-komunikaty" class="view-section">
+        <!-- WIDOK 4: CEPiK & POSZUKIWANE -->
+        <div id="view-cepik" class="view-section">
             <input type="text" id="search-plate" class="bb-input" placeholder="Szukaj auta w CEPiK (tablica)..." oninput="searchCEP()">
             <div id="cepik-box"></div>
             <hr style="border:0; border-top:1px solid #b0bec5; margin:8px 0;">
-            <h4 style="margin:4px 0; font-size:13px;">Dodaj auto do poszukiwanych:</h4>
+            <h4 style="margin:4px 0; font-size:13px;">Dodaj auto do poszukiwanych (Hotlist):</h4>
             <input type="text" id="wanted-plate-in" class="bb-input" placeholder="Tablica (np. W1 KOWAL)">
             <input type="text" id="wanted-reason-in" class="bb-input" placeholder="Powód (np. Ucieczka)">
             <button class="bb-btn btn-red" onclick="addWantedCar()">DODAJ DO HOTLIST</button>
@@ -229,7 +239,6 @@
     let lastDispatchCount = 0;
     let loggedBadge = "";
 
-    // Baza logowań
     const validBadges = {
         "104": "997",
         "101": "policja123",
@@ -253,7 +262,6 @@
         document.getElementById('mdt-clock').innerText = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     }, 1000);
 
-    // Nawigacja widoków
     function openView(viewName) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.getElementById('view-' + viewName).classList.add('active');
@@ -261,7 +269,7 @@
         let pathName = "Strona główna";
         if (viewName === 'legitymowanie') pathName = "Legitymowanie >> Osoba";
         if (viewName === 'zdarzenia') pathName = "Zdarzenia (112)";
-        if (viewName === 'komunikaty') pathName = "Komunikaty & CEPiK";
+        if (viewName === 'cepik') pathName = "CEPiK & Pojazdy";
         if (viewName === 'interwencja') pathName = "Interwencja własna";
         document.getElementById('nav-path').innerText = "Prod >> " + pathName;
     }
@@ -285,7 +293,7 @@
         }
     }
 
-    // Nasłuchiwanie Firebase w czasie rzeczywistym
+    // Firebase Sync
     db.ref('citizens').on('value', snap => { citizensCache = snap.val() || {}; });
     db.ref('vehicles').on('value', snap => { vehiclesCache = snap.val() || {}; });
     db.ref('wanted_vehicles').on('value', snap => { wantedCache = snap.val() || {}; renderWantedList(); });
@@ -301,7 +309,7 @@
         renderDispatches();
     });
 
-    // 1. WYSZUKIWANIE OBYWATELA PO PESELU (Dokładnie jak na zdjęciu)
+    // 1. WYSZUKIWANIE OBYWATELA PO PESELU
     function searchCitizen() {
         const q = document.getElementById('search-pesel').value.trim().toLowerCase();
         const box = document.getElementById('citizen-result-container');
@@ -348,7 +356,7 @@
 
                 <div style="font-size:11px; font-weight:bold; color:#546e7a; margin:8px 0 4px 0;">DANE OSOBOWE</div>
                 <div class="row-info"><span>Adres</span><span>${cData.address || 'ul. Świętokrzyska 15, Warszawa'}</span></div>
-                <div class="row-info"><span>Obywatelstvo</span><span>POLSKIE</span></div>
+                <div class="row-info"><span>Obywatelstwo</span><span>POLSKIE</span></div>
                 <div class="row-info"><span>Telefon</span><span>+48 ${foundPhone}</span></div>
 
                 <button class="bb-btn btn-orange" onclick="issueFine('${foundPhone}', '${cData.name}')">MANDAT / MRD-5</button>
