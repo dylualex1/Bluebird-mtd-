@@ -1,10 +1,3 @@
-Oto kompletny, zaktualizowany plik Bluebird MDT (bluebird.html), który łączy w sobie wszystko w sposób, o który prosiłeś:
- * System Logowania z Zarządzaniem Kontami: Panel logowania na start wymaga podania odznaki i hasła. Dodatkowo w systemie uwzględniono obsługę bazy logowań (funkcjonariuszy), dzięki czemu w każdej chwili można łatwo dodawać/zarządzać autoryzowanymi loginami.
- * Pełna Integracja z Telefonem (Firebase): W czasie rzeczywistym pobiera bazę obywateli (z mObywatela), zarejestrowane pojazdy (CEPiK), stan kont bankowych oraz aktywne zgłoszenia 112.
- * Zgłoszenia 112 z Mapą i Pineską: Po odebraniu wezwania z telefonu w Bluebirdzie wyświetla się mini-mapa (mapa.jpg) z dokładną czerwoną pineską miejsca zdarzenia oraz włącza się dźwięk alarmu.
- * Wbudowane Webhooki Discord: W kodzie znajduje się przygotowany system wysyłania powiadomień przez webhook Discord (np. przy przyjęciu zgłoszenia lub wystawieniu poszukiwania pojazdu/osoby).
- * Kartoteka KSIP i Mandaty: Wyszukiwanie po PESELU lub nazwisku wyświetla kompletny raport (RDO, CEK, punkty karne, mObywatel, statusy zastrzeżeń), a wystawiony mandat automatycznie ściąga środki z konta bankowego gracza.
-Zapisz poniższy kod jako bluebird.html:
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -18,196 +11,200 @@ Zapisz poniższy kod jako bluebird.html:
 
     <style>
         :root {
-            --bg-dark: #0b0f19;
-            --panel-bg: #131a2a;
-            --card-bg: #1b2438;
-            --border: #2a3752;
-            --accent: #3b82f6;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --text: #f8fafc;
-            --subtext: #94a3b8;
+            --bb-bg: #e4e7eb;
+            --bb-header-bg: #1c2430;
+            --bb-green: #2e7d32;
+            --bb-green-light: #4caf50;
+            --bb-pink: #f48fb1;
+            --bb-tile: #cfd8dc;
+            --bb-tile-active: #b0bec5;
+            --bb-text: #263238;
         }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
         body {
-            margin: 0; padding: 0; background: var(--bg-dark); color: var(--text);
-            display: flex; flex-direction: column; min-height: 100vh;
+            margin: 0; padding: 0; background: #0f172a; color: var(--bb-text);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+
+        /* OBDUCOWANIE TABLETU BLUEBIRD */
+        .device-frame {
+            width: 100%; max-width: 440px; height: 100vh; max-height: 850px;
+            background: var(--bb-bg); display: flex; flex-direction: column;
+            position: relative; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border: 6px solid #27272a; border-radius: 12px;
         }
 
         /* EKRAN LOGOWANIA */
         #mdt-login {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; padding: 20px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1e293b; z-index: 9999; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; padding: 25px; color: #fff; text-align: center;
         }
-        .login-box {
-            background: var(--panel-bg); border: 1px solid var(--border); padding: 30px;
-            border-radius: 12px; width: 100%; max-width: 380px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        .login-card {
+            background: #0f172a; border: 1px solid #334155; padding: 25px; border-radius: 10px; width: 100%;
+        }
+        .login-card input {
+            width: 100%; padding: 12px; margin-bottom: 12px; background: #1e293b; border: 1px solid #475569;
+            color: #fff; border-radius: 6px; font-size: 14px; outline: none;
+        }
+        .login-card button {
+            width: 100%; padding: 12px; background: var(--bb-green); color: #fff; border: none;
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;
         }
 
-        header {
-            background: var(--panel-bg); border-bottom: 2px solid var(--accent);
-            padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+        /* GÓRNY PASEK BLUEBIRD */
+        .bb-top-bar {
+            background: var(--bb-header-bg); color: #fff; display: flex; justify-content: space-between;
+            align-items: center; padding: 6px 12px; font-size: 12px; border-bottom: 1px solid #334155;
         }
-        .logo { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: #fff; display: flex; align-items: center; gap: 10px; }
-        .logo span { color: var(--accent); }
-        .clock { font-family: monospace; font-size: 16px; color: var(--subtext); }
-
-        .nav-tabs {
-            display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border);
-            padding: 0 20px; gap: 10px; overflow-x: auto;
+        .bb-status-green {
+            background: var(--bb-green); color: #fff; padding: 6px 12px; font-weight: bold; font-size: 13px; text-align: center;
         }
-        .tab-btn {
-            background: none; border: none; color: var(--subtext); padding: 14px 18px;
-            font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent;
-            transition: 0.2s; white-space: nowrap;
+        .bb-breadcrumb {
+            background: var(--bb-pink); color: #880e4f; padding: 6px 12px; font-weight: bold; font-size: 12px; display: flex; justify-content: space-between; align-items: center;
         }
-        .tab-btn:hover { color: #fff; }
-        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-        .container { flex: 1; padding: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
-
-        .panel {
-            background: var(--panel-bg); border: 1px solid var(--border);
-            border-radius: 12px; padding: 18px; margin-bottom: 20px;
+        .bb-patrol-status {
+            background: var(--bb-green-light); color: #fff; padding: 10px 12px; font-weight: bold; font-size: 13px; margin: 4px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;
         }
-        .panel h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
 
-        input, select {
-            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
-            background: var(--bg-dark); color: #fff; font-size: 14px; margin-bottom: 10px; outline: none;
-        }
-        input:focus { border-color: var(--accent); }
+        /* ZAWARTOŚĆ EKRANU */
+        .bb-screen-content { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; }
+        .view-section { display: none; flex: 1; flex-direction: column; }
+        .view-section.active { display: flex; }
 
-        .btn {
-            padding: 10px 16px; border-radius: 8px; border: none; font-weight: 600;
-            cursor: pointer; font-size: 13px; transition: 0.15s; color: #fff;
+        /* KAFELKOWE MENU GŁÓWNE */
+        .bb-grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+        .bb-tile {
+            background: var(--bb-tile); border: 1px solid #90a4ae; border-radius: 4px;
+            padding: 24px 12px; text-align: center; font-weight: bold; font-size: 13px;
+            color: var(--bb-text); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.1s; text-transform: uppercase;
         }
-        .btn-blue { background: var(--accent); }
-        .btn-blue:hover { background: #2563eb; }
-        .btn-red { background: var(--danger); }
-        .btn-red:hover { background: #dc2626; }
-        .btn-green { background: var(--success); }
-        .btn-green:hover { background: #059669; }
-        .btn-orange { background: var(--warning); color: #111; }
+        .bb-tile:active { background: var(--bb-tile-active); transform: scale(0.98); }
+        .bb-tile.full { grid-column: span 2; padding: 16px; }
 
-        .card {
-            background: var(--card-bg); border: 1px solid var(--border);
-            border-radius: 10px; padding: 14px; margin-bottom: 12px;
-        }
-        .card.wanted { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        /* WYNIKI I KARTOTEKA KSIP */
+        .bb-input { width: 100%; padding: 10px; border: 1px solid #b0bec5; border-radius: 4px; font-size: 14px; margin-bottom: 8px; outline: none; background: #fff; }
+        .bb-card { background: #fff; border: 1px solid #b0bec5; border-radius: 6px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        .badge {
-            display: inline-block; padding: 3px 8px; border-radius: 6px;
-            font-size: 11px; font-weight: bold; text-transform: uppercase;
+        .person-header { display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 10px; }
+        .person-avatar { width: 60px; height: 75px; background: #cfd8dc; border-radius: 4px; object-fit: cover; border: 1px solid #90a4ae; }
+        
+        .row-info { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; font-size: 12px; }
+        .status-badge { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .st-ok { background: #c8e6c9; color: #2e7d32; }
+        .st-warn { background: #ffcdd2; color: #c62828; }
+
+        .bb-btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; color: #fff; margin-top: 6px; text-align: center; }
+        .btn-orange { background: #ef6c00; }
+        .btn-red { background: #c62828; }
+        .btn-blue { background: #1565c0; }
+        .btn-green { background: #2e7d32; }
+
+        /* ZGŁOSZENIA 112 & MAPA */
+        .dispatch-box { background: #fff; border-left: 5px solid #c62828; padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+        .dispatch-box.accepted { border-left-color: #ef6c00; }
+        .map-mini { position: relative; width: 100%; height: 130px; border-radius: 4px; overflow: hidden; border: 1px solid #b0bec5; margin: 6px 0; }
+        .map-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .map-pin-mini { position: absolute; width: 10px; height: 10px; background: #c62828; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); }
+
+        /* DOLNY PASEK SYSTEMOWY */
+        .bb-bottom-nav {
+            background: #263238; padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; color: #cfd8dc; font-size: 11px; border-top: 1px solid #37474f;
         }
-        .badge-red { background: var(--danger); color: #fff; }
-        .badge-green { background: var(--success); color: #fff; }
-        .badge-orange { background: var(--warning); color: #111; }
-
-        .alert-box {
-            background: rgba(239, 68, 68, 0.2); border: 2px solid var(--danger);
-            color: #fca5a5; padding: 12px; border-radius: 8px; font-weight: bold;
-            margin-bottom: 12px; text-align: center;
-        }
-
-        /* Kartoteka KSIP */
-        .ksip-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 15px; margin-top: 15px; }
-        .ksip-header { display: flex; gap: 15px; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 12px; }
-        .ksip-avatar { width: 70px; height: 90px; border-radius: 6px; object-fit: cover; border: 1px solid #64748b; }
-        .ksip-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #1e293b; font-size: 13px; }
-        .ksip-status { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .status-ok { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-        .status-warn { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-
-        /* Mini-mapa zgłoszenia */
-        .dispatch-map-view { position: relative; width: 100%; max-width: 300px; height: 160px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); margin: 8px 0; }
-        .dispatch-map-view img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .mini-pin { position: absolute; width: 12px; height: 12px; background: #ef4444; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 5px #000; }
     </style>
 </head>
 <body>
 
-<!-- EKRAN LOGOWANIA FUNKCJONARIUSZA -->
+<!-- EKRAN LOGOWANIA -->
 <div id="mdt-login">
-    <div class="login-box">
-        <h2 style="margin-top:0;">🦅 BLUEBIRD MDT</h2>
-        <p style="color:#94a3b8; font-size:13px; margin-bottom:15px;">Autoryzacja w systemie służb</p>
-        <input type="text" id="login-badge" placeholder="Numer odznaki / Kryptonim (np. 104)">
-        <input type="password" id="login-pass" placeholder="Hasło dostępu (domyślnie: 997)">
-        <button class="btn btn-blue" style="width:100%; margin-top:5px;" onclick="authOfficer()">Zaloguj do terminala</button>
-        <div style="margin-top:15px; font-size:11px; color:var(--subtext);">
-            Domyślne konto testowe:<br>Odznaka: <b>104</b> | Hasło: <b>997</b>
-        </div>
+    <div class="login-card">
+        <h3 style="margin-top:0; color:#fff;">🦅 BLUEBIRD MDT</h3>
+        <p style="color:#94a3b8; font-size:12px; margin-bottom:15px;">System operacyjny służb RP</p>
+        <input type="text" id="input-badge" placeholder="Numer odznaki (np. 104)">
+        <input type="password" id="input-pass" placeholder="Hasło (domyślnie: 997)">
+        <button onclick="loginMDT()">ZALOGUJ DO SYSTEMU</button>
+        <div style="margin-top:12px; font-size:11px; color:#64748b;">Domyślny login: <b>104</b> | Hasło: <b>997</b></div>
     </div>
 </div>
 
-<header>
-    <div class="logo">🦅 BLUEBIRD <span>MDT</span> <small style="font-size:11px; color:var(--subtext); margin-left:10px;" id="header-officer-info"></small></div>
-    <div class="clock" id="mdt-clock">00:00:00</div>
-</header>
-
-<div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('dispatches', this)">🚨 Zgłoszenia 112</button>
-    <button class="tab-btn" onclick="switchTab('vehicles', this)">🚗 CEPiK & Poszukiwane Auta</button>
-    <button class="tab-btn" onclick="switchTab('citizens', this)">👤 Obywatele & Mandaty</button>
-</div>
-
-<div class="container">
-
-    <!-- ZAKŁADKA 1: ZGŁOSZENIA 112 -->
-    <div id="tab-dispatches" class="tab-content active">
-        <div class="panel">
-            <h2>Aktywne wezwania z Centrali 112</h2>
-            <div id="dispatches-list">Ładowanie zgłoszeń...</div>
-        </div>
+<div class="device-frame">
+    <!-- GÓRNY PASEK -->
+    <div class="bb-top-bar">
+        <span><b>BLUEBIRD</b> <small id="badge-display"></small></span>
+        <span id="mdt-clock">20:04</span>
+    </div>
+    <div class="bb-status-green">Broadcaster: Połączony</div>
+    <div class="bb-breadcrumb">
+        <span id="nav-path">Prod >> Strona główna</span>
+        <span style="cursor:pointer;" onclick="goHome()">🏠</span>
+    </div>
+    <div class="bb-patrol-status">
+        <span>Status patrolu: <b>Wolny</b></span>
+        <span style="font-size:11px; cursor:pointer; text-decoration:underline;" onclick="togglePatrolStatus()">zmień status</span>
     </div>
 
-    <!-- ZAKŁADKA 2: CEPIK & POSZUKIWANE AUTA -->
-    <div id="tab-vehicles" class="tab-content">
-        <div class="grid-2">
-            <div class="panel">
-                <h2>🔍 Sprawdź pojazd (CEPiK)</h2>
-                <input type="text" id="search-plate" placeholder="Wpisz tablicę rejestracyjną (np. W1 KOWAL)">
-                <button class="btn btn-blue" style="width:100%;" onclick="searchVehicle()">Szukaj w bazie</button>
-                <div id="cepik-result" style="margin-top:15px;"></div>
-            </div>
-
-            <div class="panel">
-                <h2>🚨 Zgłoś poszukiwany pojazd (Hotlist)</h2>
-                <input type="text" id="wanted-plate" placeholder="Tablica rejestracyjna (np. W1 KOWAL)">
-                <input type="text" id="wanted-reason" placeholder="Powód (np. Kradzież, Ucieczka przed policją)">
-                <button class="btn btn-red" style="width:100%;" onclick="addWantedVehicle()">Dodaj do listy poszukiwanych</button>
+    <!-- GŁÓWNA ZAWARTOŚĆ -->
+    <div class="bb-screen-content">
+        
+        <!-- WIDOK 1: STRONA GŁÓWNA (MENU KAFELKOWE) -->
+        <div id="view-home" class="view-section active">
+            <div class="bb-grid-menu">
+                <div class="bb-tile" onclick="openView('legitymowanie')">LEGITYMOWANIA</div>
+                <div class="bb-tile" onclick="openView('interwencja')">INTERWENCJA WŁASNA</div>
+                <div class="bb-tile" onclick="openView('komunikaty')">KOMUNIKATY</div>
+                <div class="bb-tile" onclick="openView('zdarzenia')">ZDARZENIA (112)</div>
+                <div class="bb-tile full" style="background:#b0bec5;" onclick="alert('Brak aktywnych meldunków.')">MELDUNKI <small style="display:block; font-size:10px; color:#455a64;">(tylko w interwencji)</small></div>
+                <div class="bb-tile full" style="background:#b0bec5;" onclick="alert('Brak dyspozycji.')">DYSPOYCJE <small style="display:block; font-size:10px; color:#455a64;">(tylko w interwencji)</small></div>
             </div>
         </div>
 
-        <div class="panel">
-            <h2>📋 Aktywna lista poszukiwanych pojazdów</h2>
-            <div id="wanted-list">Ładowanie listy...</div>
+        <!-- WIDOK 2: LEGITYMOWANIE / WYSZUKIWANIE PO PESELU -->
+        <div id="view-legitymowanie" class="view-section">
+            <input type="text" id="search-pesel" class="bb-input" placeholder="Wpisz PESEL lub nazwisko obywatela..." oninput="searchCitizen()">
+            <div id="citizen-result-container" style="overflow-y:auto; flex:1;"></div>
         </div>
+
+        <!-- WIDOK 3: ZDARZENIA / ZGŁOSZENIA 112 -->
+        <div id="view-zdarzenia" class="view-section">
+            <h4 style="margin:0 0 8px 0; font-size:14px;">Aktywne wezwania centrali 112:</h4>
+            <div id="dispatches-container" style="overflow-y:auto; flex:1;">Ładowanie zgłoszeń...</div>
+        </div>
+
+        <!-- WIDOK 4: KOMUNIKATY / CEPiK & POSZUKIWANE -->
+        <div id="view-komunikaty" class="view-section">
+            <input type="text" id="search-plate" class="bb-input" placeholder="Szukaj auta w CEPiK (tablica)..." oninput="searchCEP()">
+            <div id="cepik-box"></div>
+            <hr style="border:0; border-top:1px solid #b0bec5; margin:8px 0;">
+            <h4 style="margin:4px 0; font-size:13px;">Dodaj auto do poszukiwanych:</h4>
+            <input type="text" id="wanted-plate-in" class="bb-input" placeholder="Tablica (np. W1 KOWAL)">
+            <input type="text" id="wanted-reason-in" class="bb-input" placeholder="Powód (np. Ucieczka)">
+            <button class="bb-btn btn-red" onclick="addWantedCar()">DODAJ DO HOTLIST</button>
+            <div id="wanted-list-box" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- WIDOK 5: INTERWENCJA WŁASNA -->
+        <div id="view-interwencja" class="view-section">
+            <div class="bb-card" style="text-align:center;">
+                <h3>Panel Interwencji</h3>
+                <p style="font-size:12px; color:#546e7a;">Tutaj możesz szybko notować przebieg bieżącej interwencji patrolu.</p>
+                <textarea id="inter-notes" class="bb-input" placeholder="Notatki z interwencji..." style="height:100px; resize:none;"></textarea>
+                <button class="bb-btn btn-blue" onclick="alert('Zapisano notatkę w systemie patrolu!')">Zapisz notatkę</button>
+            </div>
+        </div>
+
     </div>
 
-    <!-- ZAKŁADKA 3: OBYWATELE & MANDATY (KSIP) -->
-    <div id="tab-citizens" class="tab-content">
-        <div class="panel">
-            <h2>🔍 Legitymowanie / Wyszukiwanie po PESELU</h2>
-            <input type="text" id="search-pesel-input" placeholder="Wpisz numer PESEL (np. 70020273218) lub nazwisko..." oninput="searchCitizenKSIP()">
-            <div id="ksip-result-area"></div>
-        </div>
+    <!-- DOLNY PASEK -->
+    <div class="bb-bottom-nav">
+        <span id="app-version">v1.0.8</span>
+        <span style="cursor:pointer;" onclick="goHome()">🏠 Strona główna</span>
     </div>
-
 </div>
 
-<!-- Audio powiadomienia -->
-<audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+<!-- Dźwięk alarmu 112 -->
+<audio id="dispatch-alarm" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <script>
     const firebaseConfig = {
@@ -221,278 +218,254 @@ Zapisz poniższy kod jako bluebird.html:
         measurementId: "G-D46V1EX5G1"
     };
 
-    // Konfiguracja webhooka Discord (wpisz swój link lub zostaw puste)
-    const DISCORD_WEBHOOK_URL = ""; 
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let dispatchesCache = {};
+    let citizensCache = {};
     let vehiclesCache = {};
     let wantedCache = {};
-    let citizensCache = {};
     let accountsCache = {};
+    let dispatchesCache = {};
     let lastDispatchCount = 0;
-    let loggedOfficer = "";
+    let loggedBadge = "";
 
-    // Baza autoryzowanych logowań (możesz dopisywać kolejnych funkcjonariuszy)
-    let authorizedOfficers = {
+    // Baza logowań
+    const validBadges = {
         "104": "997",
         "101": "policja123",
-        "admin": "admin123"
+        "admin": "admin"
     };
 
-    function authOfficer() {
-        const badge = document.getElementById('login-badge').value.trim();
-        const pass = document.getElementById('login-pass').value;
-        if (!badge) return alert("Podaj numer odznaki!");
-        
-        if (authorizedOfficers[badge] && authorizedOfficers[badge] === pass) {
-            loggedOfficer = badge;
+    function loginMDT() {
+        const b = document.getElementById('input-badge').value.trim();
+        const p = document.getElementById('input-pass').value;
+        if (validBadges[b] && validBadges[b] === p) {
+            loggedBadge = b;
             document.getElementById('mdt-login').style.display = 'none';
-            document.getElementById('header-officer-info').innerText = `[Funkcjonariusz: ${badge}]`;
+            document.getElementById('badge-display').innerText = `[Odznaka: ${b}]`;
         } else {
-            alert("❌ Błędna odznaka lub hasło dostępu!");
+            alert("Błędny numer odznaki lub hasło!");
         }
     }
 
     setInterval(() => {
-        document.getElementById('mdt-clock').innerText = new Date().toLocaleTimeString('pl-PL');
+        const now = new Date();
+        document.getElementById('mdt-clock').innerText = now.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     }, 1000);
 
-    function switchTab(tabName, btn) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById('tab-' + tabName).classList.add('active');
-        btn.classList.add('active');
+    // Nawigacja widoków
+    function openView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById('view-' + viewName).classList.add('active');
+        
+        let pathName = "Strona główna";
+        if (viewName === 'legitymowanie') pathName = "Legitymowanie >> Osoba";
+        if (viewName === 'zdarzenia') pathName = "Zdarzenia (112)";
+        if (viewName === 'komunikaty') pathName = "Komunikaty & CEPiK";
+        if (viewName === 'interwencja') pathName = "Interwencja własna";
+        document.getElementById('nav-path').innerText = "Prod >> " + pathName;
     }
 
-    // Nasłuchiwanie zmian w bazie Firebase
+    function goHome() {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById('view-home').classList.add('active');
+        document.getElementById('nav-path').innerText = "Prod >> Strona główna";
+    }
+
+    let patrolBusy = false;
+    function togglePatrolStatus() {
+        patrolBusy = !patrolBusy;
+        const el = document.querySelector('.bb-patrol-status');
+        if (patrolBusy) {
+            el.style.background = "#ef6c00";
+            el.innerHTML = `<span>Status patrolu: <b>Zajęty / Interwencja</b></span><span style="font-size:11px; cursor:pointer; text-decoration:underline;" onclick="togglePatrolStatus()">zmień status</span>`;
+        } else {
+            el.style.background = "var(--bb-green-light)";
+            el.innerHTML = `<span>Status patrolu: <b>Wolny</b></span><span style="font-size:11px; cursor:pointer; text-decoration:underline;" onclick="togglePatrolStatus()">zmień status</span>`;
+        }
+    }
+
+    // Nasłuchiwanie Firebase w czasie rzeczywistym
+    db.ref('citizens').on('value', snap => { citizensCache = snap.val() || {}; });
+    db.ref('vehicles').on('value', snap => { vehiclesCache = snap.val() || {}; });
+    db.ref('wanted_vehicles').on('value', snap => { wantedCache = snap.val() || {}; renderWantedList(); });
+    db.ref('bank_accounts').on('value', snap => { accountsCache = snap.val() || {}; });
     db.ref('active_dispatches').on('value', snap => {
         dispatchesCache = snap.val() || {};
-        const currentCount = Object.keys(dispatchesCache).length;
-        if (currentCount > lastDispatchCount && lastDispatchCount !== 0) {
-            const sound = document.getElementById('alert-sound');
-            if (sound) sound.play().catch(e => console.log("Audio blocked"));
+        const count = Object.keys(dispatchesCache).length;
+        if (count > lastDispatchCount && lastDispatchCount !== 0) {
+            const sound = document.getElementById('dispatch-alarm');
+            if (sound) sound.play().catch(e => console.log("Audio play blocked"));
         }
-        lastDispatchCount = currentCount;
+        lastDispatchCount = count;
         renderDispatches();
     });
 
-    db.ref('vehicles').on('value', snap => { vehiclesCache = snap.val() || {}; });
-    db.ref('wanted_vehicles').on('value', snap => { wantedCache = snap.val() || {}; renderWantedList(); });
-    db.ref('citizens').on('value', snap => { citizensCache = snap.val() || {}; });
-    db.ref('bank_accounts').on('value', snap => { accountsCache = snap.val() || {}; });
+    // 1. WYSZUKIWANIE OBYWATELA PO PESELU (Dokładnie jak na zdjęciu)
+    function searchCitizen() {
+        const q = document.getElementById('search-pesel').value.trim().toLowerCase();
+        const box = document.getElementById('citizen-result-container');
+        if (!q) { box.innerHTML = ''; return; }
 
-    function sendDiscordWebhook(content) {
-        if (!DISCORD_WEBHOOK_URL) return;
-        fetch(DISCORD_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: content })
-        }).catch(err => console.log("Webhook error:", err));
-    }
-
-    function renderDispatches() {
-        const list = document.getElementById('dispatches-list');
-        const keys = Object.keys(dispatchesCache).reverse();
-        if (keys.length === 0) {
-            list.innerHTML = `<p style="color:var(--subtext);">Brak aktywnych zgłoszeń 112.</p>`;
-            return;
-        }
-        list.innerHTML = keys.map(id => {
-            const d = dispatchesCache[id];
-            const isAccepted = d.status === 'W trakcie';
-            const pinX = d.pinX || 50;
-            const pinY = d.pinY || 50;
-            return `
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <b>${d.sluzba}</b>
-                        <span class="badge ${isAccepted ? 'badge-orange' : 'badge-red'}">${d.status}</span>
-                    </div>
-                    <div style="font-size:13px; margin-bottom:4px;">📍 <b>Lokalizacja:</b> ${d.lokalizacja}</div>
-                    <div style="font-size:12px; color:var(--subtext); margin-bottom:6px;">📞 Tel: ${d.telefon} | 🕒 ${d.czas}</div>
-                    
-                    <div class="dispatch-map-view">
-                        <img src="mapa.jpg" alt="Mapa zdarzenia">
-                        <div class="mini-pin" style="left: ${pinX}%; top: ${pinY}%;"></div>
-                    </div>
-
-                    <div style="display:flex; gap:8px; margin-top:8px;">
-                        ${!isAccepted ? `<button class="btn btn-blue" onclick="acceptDispatch('${id}')">Przyjmij zgłoszenie</button>` : ''}
-                        <button class="btn btn-green" onclick="closeDispatch('${id}')">Zakończ / Usuń</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function acceptDispatch(id) {
-        db.ref('active_dispatches/' + id + '/status').set('W trakcie');
-        sendDiscordWebhook(`🚨 Funkcjonariusz **[Odznaka: ${loggedOfficer}]** przyjął zgłoszenie 112.`);
-    }
-
-    function closeDispatch(id) {
-        db.ref('active_dispatches/' + id).remove();
-    }
-
-    function searchVehicle() {
-        const plate = document.getElementById('search-plate').value.trim().toUpperCase();
-        const resDiv = document.getElementById('cepik-result');
-        if (!plate) return;
-
-        let foundVehicle = null;
-        for (let ownerPhone in vehiclesCache) {
-            if (vehiclesCache[ownerPhone][plate]) {
-                foundVehicle = vehiclesCache[ownerPhone][plate];
-                break;
-            }
-        }
-
-        const wantedInfo = wantedCache[plate];
-        let html = '';
-        if (wantedInfo) {
-            html += `<div class="alert-box">🚨 UWAGA! POJAZD POSZUKIWANY!<br><small>Powód: ${wantedInfo.reason}</small></div>`;
-        }
-        if (foundVehicle) {
-            const ownerCit = citizensCache[foundVehicle.owner];
-            html += `
-                <div class="card ${wantedInfo ? 'wanted' : ''}">
-                    <div><b>Marka/Model:</b> ${foundVehicle.brand}</div>
-                    <div><b>Tablica:</b> ${foundVehicle.plate}</div>
-                    <div><b>Właściciel (Tel):</b> ${foundVehicle.owner}</div>
-                    <div><b>Dane właściciela:</b> ${ownerCit ? ownerCit.name + ' (PESEL: ' + ownerCit.pesel + ')' : 'Brak dowodu w bazie'}</div>
-                </div>
-            `;
-        } else if (!wantedInfo) {
-            html = `<p style="color:var(--subtext);">Nie znaleziono pojazdu o tablicy <b>${plate}</b> w bazie CEPiK.</p>`;
-        }
-        resDiv.innerHTML = html;
-    }
-
-    function addWantedVehicle() {
-        const plate = document.getElementById('wanted-plate').value.trim().toUpperCase();
-        const reason = document.getElementById('wanted-reason').value.trim();
-        if (!plate || !reason) return alert("Podaj tablicę i powód!");
-        const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-        db.ref('wanted_vehicles/' + plate).set({ plate, reason, time }).then(() => {
-            document.getElementById('wanted-plate').value = "";
-            document.getElementById('wanted-reason').value = "";
-            sendDiscordWebhook(`🚨 Pojazd o tablicy **${plate}** został dodany do poszukiwanych przez odznakę ${loggedOfficer}. Powód: ${reason}`);
-        });
-    }
-
-    function removeWantedVehicle(plate) {
-        db.ref('wanted_vehicles/' + plate).remove();
-    }
-
-    function renderWantedList() {
-        const list = document.getElementById('wanted-list');
-        const keys = Object.keys(wantedCache);
-        if (keys.length === 0) { list.innerHTML = `<p style="color:var(--subtext);">Brak poszukiwanych pojazdów.</p>`; return; }
-        list.innerHTML = keys.map(plate => {
-            const w = wantedCache[plate];
-            return `
-                <div class="card wanted" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span class="badge badge-red">POSZUKIWANY</span>
-                        <b style="font-size:16px; margin-left:8px;">${w.plate}</b>
-                        <div style="font-size:13px; margin-top:4px;">Powód: ${w.reason} <small style="color:var(--subtext);">(${w.time})</small></div>
-                    </div>
-                    <button class="btn btn-green" onclick="removeWantedVehicle('${plate}')">Zdejmij z listy</button>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function searchCitizenKSIP() {
-        const query = document.getElementById('search-pesel-input').value.trim().toLowerCase();
-        const area = document.getElementById('ksip-result-area');
-        if (!query) { area.innerHTML = ''; return; }
-
-        let matchedPhone = null;
-        let matchedCit = null;
-
+        let foundPhone = null;
+        let cData = null;
         for (let phone in citizensCache) {
             const c = citizensCache[phone];
-            if (c.pesel.toLowerCase().includes(query) || c.name.toLowerCase().includes(query) || phone.includes(query)) {
-                matchedPhone = phone;
-                matchedCit = c;
+            if (c.pesel.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || phone.includes(q)) {
+                foundPhone = phone;
+                cData = c;
                 break;
             }
         }
 
-        if (!matchedCit) {
-            area.innerHTML = `<p style="color:var(--subtext); margin-top:10px;">Brak obywatela w bazie pasującym do zapytania.</p>`;
+        if (!cData) {
+            box.innerHTML = `<p style="font-size:12px; color:#546e7a; text-align:center; margin-top:20px;">Brak obywatela w bazie.</p>`;
             return;
         }
 
-        const isSuspended = matchedCit.suspended;
-        area.innerHTML = `
-            <div class="ksip-card">
-                <div class="ksip-header">
-                    <img src="${matchedCit.photo || 'https://via.placeholder.com/70'}" class="ksip-avatar" alt="Foto">
+        const isSuspended = cData.suspended;
+        box.innerHTML = `
+            <div class="bb-card">
+                <div class="person-header">
+                    <img src="${cData.photo || 'https://via.placeholder.com/60'}" class="person-avatar" alt="Foto">
                     <div>
-                        <div style="font-size:16px; font-weight:bold;">${matchedCit.name}</div>
-                        <div style="font-size:13px; color:var(--subtext); margin-top:2px;">PESEL ${matchedCit.pesel}</div>
-                        <div style="font-size:12px; color:var(--subtext);">ur. ${matchedCit.dob || '01.01.1990'}, Mężczyzna</div>
-                        <div style="font-size:12px; color:var(--subtext);">dow. os. DCK298070</div>
+                        <div style="font-size:14px; font-weight:bold;">${cData.name}</div>
+                        <div style="font-size:12px; color:#546e7a;">PESEL ${cData.pesel}</div>
+                        <div style="font-size:11px; color:#546e7a;">ur. ${cData.dob || '01.02.1955'}, Mężczyzna</div>
+                        <div style="font-size:11px; color:#546e7a;">dow. os. DCK298070</div>
                     </div>
                 </div>
 
-                <div style="font-size:12px; font-weight:bold; color:var(--subtext); margin-bottom:8px;">WYNIK SPRAWDZENIA W ZBIORACH</div>
-                
-                <div class="ksip-row"><span>KSIP - Osoba</span><span class="ksip-status status-ok">BRAK WPISÓW</span></div>
-                <div class="ksip-row"><span>PESEL</span><span class="ksip-status status-ok">DANE ZGODNE</span></div>
-                <div class="ksip-row"><span>Zastrzeżenie PESEL (mObywatel)</span><span class="ksip-status ${isSuspended ? 'status-warn' : 'status-ok'}">${isSuspended ? 'ZASTRZEŻONY' : 'BRAK ZASTRZEŻENIA'}</span></div>
-                <div class="ksip-row"><span>RDO Rejestr Dowodów Osobistych</span><span class="ksip-status status-ok">DOKUMENT WAŻNY</span></div>
-                <div class="ksip-row"><span>CEK Ewidencja kierowców</span><span class="ksip-status status-ok">KAT. B</span></div>
-                <div class="ksip-row"><span>Rejestr wykroczeń (punkty karne / mandaty)</span><span class="ksip-status status-ok">0 PKT</span></div>
-                <div class="ksip-row"><span>SIS System Informacyjny Schengen</span><span class="ksip-status status-ok">BRAK WPISU</span></div>
-                <div class="ksip-row"><span>Noe.NET Osoby pozbawione wolności</span><span class="ksip-status status-ok">BRAK</span></div>
+                <div style="font-size:11px; font-weight:bold; color:#546e7a; margin-bottom:4px;">WYNIK SPRAWDZENIA W ZBIORACH</div>
+                <div class="row-info"><span>KSIP - Osoba</span><span class="status-badge st-ok">BRAK WPISÓW</span></div>
+                <div class="row-info"><span>PESEL</span><span class="status-badge st-ok">DANE ZGODNE</span></div>
+                <div class="row-info"><span>Zastrzeżenie PESEL (mObywatel)</span><span class="status-badge ${isSuspended ? 'st-warn' : 'st-ok'}">${isSuspended ? 'ZASTRZEŻONY' : 'BRAK ZASTRZEŻENIA'}</span></div>
+                <div class="row-info"><span>RDO Rejestr Dowodów</span><span class="status-badge st-ok">DOKUMENT WAŻNY</span></div>
+                <div class="row-info"><span>CEK Ewidencja kierowców</span><span class="status-badge st-ok">KAT. B</span></div>
+                <div class="row-info"><span>Rejestr wykroczeń / mandaty</span><span class="status-badge st-ok">0 PKT</span></div>
+                <div class="row-info"><span>SIS System Schengen</span><span class="status-badge st-ok">BRAK WPISU</span></div>
+                <div class="row-info"><span>Noe.NET</span><span class="status-badge st-ok">BRAK</span></div>
 
-                <div style="font-size:12px; font-weight:bold; color:var(--subtext); margin:12px 0 6px 0;">DANE OSOBOWE</div>
-                <div class="ksip-row"><span>Adres</span><span>${matchedCit.address || 'ul. Główna 1, Miasto'}</span></div>
-                <div class="ksip-row"><span>Rodzice</span><span>${matchedCit.parents || 'Jan Maria'}</span></div>
-                <div class="ksip-row"><span>Obywatelstwo</span><span>POLSKIE</span></div>
-                <div class="ksip-row"><span>Telefon</span><span>+48 ${matchedPhone}</span></div>
+                <div style="font-size:11px; font-weight:bold; color:#546e7a; margin:8px 0 4px 0;">DANE OSOBOWE</div>
+                <div class="row-info"><span>Adres</span><span>${cData.address || 'ul. Świętokrzyska 15, Warszawa'}</span></div>
+                <div class="row-info"><span>Obywatelstvo</span><span>POLSKIE</span></div>
+                <div class="row-info"><span>Telefon</span><span>+48 ${foundPhone}</span></div>
 
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button class="btn btn-orange" style="flex:1;" onclick="issueFineFromKSIP('${matchedPhone}', '${matchedCit.name}')">💸 Mandat / MRD-5</button>
-                    <button class="btn btn-red" style="flex:1;" onclick="toggleSuspendKSIP('${matchedPhone}')">${isSuspended ? '🔓 Cofnij zastrzeżenie' : '🛑 Zastrzeż dowód'}</button>
-                </div>
+                <button class="bb-btn btn-orange" onclick="issueFine('${foundPhone}', '${cData.name}')">MANDAT / MRD-5</button>
+                <button class="bb-btn ${isSuspended ? 'btn-green' : 'btn-red'}" onclick="toggleSuspend('${foundPhone}')">${isSuspended ? 'Cofnij zastrzeżenie' : 'Zastrzeż dowód'}</button>
             </div>
         `;
     }
 
-    function issueFineFromKSIP(phone, name) {
-        const amountStr = prompt(`Mandat dla: ${name}.\nPodaj kwotę (PLN):`);
-        const amount = parseFloat(amountStr);
+    function issueFine(phone, name) {
+        const amtStr = prompt(`Wystawiasz mandat dla: ${name}.\nPodaj kwotę (PLN):`);
+        const amount = parseFloat(amtStr);
         if (isNaN(amount) || amount <= 0) return;
-        const reason = prompt("Podaj powód:") || "Mandat karny";
+        const reason = prompt("Podaj powód mandatu:") || "Wykroczenie drogowe";
 
         let acc = accountsCache[phone] || { balance: 0, history: [] };
         acc.balance -= amount;
         acc.history = acc.history || [];
         const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-        acc.history.push({ title: `Mandat: ${reason}`, amount: amount, type: 'out', time });
+        acc.history.push({ title: `Mandat: ${reason}`, amount, type: 'out', time });
 
         db.ref('bank_accounts/' + phone).set(acc).then(() => {
-            alert(`✅ Mandat ${amount} PLN pobrany z konta obywatela!`);
-            sendDiscordWebhook(`💸 Funkcjonariusz ${loggedOfficer} wystawił mandat na kwotę **${amount} PLN** dla obywatela (Tel: ${phone}). Powód: ${reason}`);
+            alert(`✅ Mandat na kwotę ${amount} PLN pomyślnie pobrany z konta bankowego obywatela!`);
         });
     }
 
-    function toggleSuspendKSIP(phone) {
+    function toggleSuspend(phone) {
         const cit = citizensCache[phone];
         if (cit) {
-            db.ref('citizens/' + phone + '/suspended').set(!cit.suspended).then(() => {
-                searchCitizenKSIP();
-            });
+            db.ref('citizens/' + phone + '/suspended').set(!cit.suspended).then(() => searchCitizen());
         }
+    }
+
+    // 2. CEPiK & POSZUKIWANE AUTA
+    function searchCEP() {
+        const plate = document.getElementById('search-plate').value.trim().toUpperCase();
+        const box = document.getElementById('cepik-box');
+        if (!plate) { box.innerHTML = ''; return; }
+
+        let foundV = null;
+        for (let phone in vehiclesCache) {
+            if (vehiclesCache[phone][plate]) {
+                foundV = vehiclesCache[phone][plate];
+                break;
+            }
+        }
+        const wanted = wantedCache[plate];
+        let h = '';
+        if (wanted) {
+            h += `<div style="background:#ffebee; border:1px solid #c62828; color:#c62828; padding:8px; border-radius:4px; font-weight:bold; font-size:12px; margin-bottom:6px;">🚨 POJAZD POSZUKIWANY: ${wanted.reason}</div>`;
+        }
+        if (foundV) {
+            h += `<div class="bb-card"><b>Model:</b> ${foundV.brand}<br><b>Tablica:</b> ${foundV.plate}<br><b>Właściciel (Tel):</b> ${foundV.owner}</div>`;
+        } else if (!wanted) {
+            h = `<p style="font-size:12px; color:#546e7a;">Brak pojazdu w CEPiK.</p>`;
+        }
+        box.innerHTML = h;
+    }
+
+    function addWantedCar() {
+        const plate = document.getElementById('wanted-plate-in').value.trim().toUpperCase();
+        const reason = document.getElementById('wanted-reason-in').value.trim();
+        if (!plate || !reason) return alert("Uzupełnij tablicę i powód!");
+        const time = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+        db.ref('wanted_vehicles/' + plate).set({ plate, reason, time }).then(() => {
+            document.getElementById('wanted-plate-in').value = "";
+            document.getElementById('wanted-reason-in').value = "";
+            alert("Dodano pojazd do poszukiwanych!");
+        });
+    }
+
+    function renderWantedList() {
+        const box = document.getElementById('wanted-list-box');
+        const keys = Object.keys(wantedCache);
+        if (keys.length === 0) { box.innerHTML = `<p style="font-size:11px; color:#546e7a;">Brak aut na hotliście.</p>`; return; }
+        box.innerHTML = keys.map(p => `
+            <div style="background:#fff; border:1px solid #ef5350; padding:6px; border-radius:4px; font-size:12px; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center;">
+                <div><b>${p}</b> (${wantedCache[p].reason})</div>
+                <button style="background:#c62828; color:#fff; border:none; padding:2px 6px; border-radius:3px; cursor:pointer;" onclick="db.ref('wanted_vehicles/${p}').remove()">Usuń</button>
+            </div>
+        `).join('');
+    }
+
+    // 3. ZGŁOSZENIA 112 Z MAPĄ I PINESKĄ
+    function renderDispatches() {
+        const box = document.getElementById('dispatches-container');
+        const keys = Object.keys(dispatchesCache).reverse();
+        if (keys.length === 0) {
+            box.innerHTML = `<p style="font-size:12px; color:#546e7a; text-align:center; margin-top:20px;">Brak aktywnych zgłoszeń 112.</p>`;
+            return;
+        }
+        box.innerHTML = keys.map(id => {
+            const d = dispatchesCache[id];
+            const isAccepted = d.status === 'W trakcie';
+            const px = d.pinX || 50;
+            const py = d.pinY || 50;
+            return `
+                <div class="dispatch-box ${isAccepted ? 'accepted' : ''}">
+                    <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold;">
+                        <span>${d.sluzba}</span>
+                        <span style="color:${isAccepted ? '#ef6c00' : '#c62828'};">${d.status}</span>
+                    </div>
+                    <div style="font-size:12px; margin:4px 0;">📍 ${d.lokalizacja}</div>
+                    <div style="font-size:11px; color:#546e7a;">📞 Tel: ${d.telefon} | 🕒 ${d.czas}</div>
+                    
+                    <div class="map-mini">
+                        <img src="mapa.jpg" alt="Mapa">
+                        <div class="map-pin-mini" style="left:${px}%; top:${py}%;"></div>
+                    </div>
+
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                        ${!isAccepted ? `<button class="bb-btn btn-blue" style="margin-top:0; padding:6px;" onclick="db.ref('active_dispatches/${id}/status').set('W trakcie')">PRZYJMIJ</button>` : ''}
+                        <button class="bb-btn btn-green" style="margin-top:0; padding:6px;" onclick="db.ref('active_dispatches/${id}').remove()">ZAKOŃCZ</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 </script>
 </body>
 </html>
-
